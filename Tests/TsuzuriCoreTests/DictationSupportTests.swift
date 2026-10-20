@@ -93,3 +93,22 @@ struct DictationHistoryTests {
         #expect(AudioRetention.expired(files.map { (file: $0.0, createdAt: $0.1) }, now: now) == ["8日前.wav"])
     }
 }
+
+@Suite("話し声の有無")
+struct SpeechPresenceTests {
+    func tone(seconds: Double, amplitude: Float) -> [Float] {
+        (0..<Int(seconds * 16_000)).map { amplitude * sin(Float($0) * 2 * .pi * 220 / 16_000) }
+    }
+
+    @Test("ほぼ無音の録音は、話し声なしとみなす")
+    func silence() {
+        #expect(!SpeechPresence.hasSpeech(tone(seconds: 2, amplitude: 0.003)))
+        #expect(!SpeechPresence.hasSpeech([]))
+    }
+
+    @Test("声の大きさの音が0.3秒以上あれば、話し声ありとみなす")
+    func speech() {
+        #expect(SpeechPresence.hasSpeech(tone(seconds: 1, amplitude: 0.1)))
+        #expect(!SpeechPresence.hasSpeech(tone(seconds: 0.2, amplitude: 0.1) + tone(seconds: 1, amplitude: 0.001)))
+    }
+}

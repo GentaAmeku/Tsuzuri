@@ -24,7 +24,7 @@ struct Run: AsyncParsableCommand {
     var only: [String] = []
 
     @Option(help: "WhisperKit のモデル")
-    var whisperModel = "large-v3-v20240930_626MB"
+    var whisperModel = WhisperKitEngine.defaultModel
 
     @Flag(help: "Mac 内の認識のモデルを取得してよい(WhisperKit は約626MB、Apple の日本語モデルはシステムが取得)")
     var allowDownload = false

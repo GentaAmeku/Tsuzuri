@@ -21,7 +21,15 @@ struct MenuContent: View {
     var body: some View {
         Text(controller.statusLine)
         Divider()
-        Text("認識: Soniox")
+        Text(controller.engineLine)
+        Toggle("Mac 内だけで認識する", isOn: Binding(
+            get: { controller.store.localOnly },
+            set: { controller.store.localOnly = $0 }
+        ))
+        .disabled(!controller.local.isAvailable)
+        if !controller.local.isAvailable {
+            Text("Mac 内の認識: \(controller.local.stateDescription)")
+        }
         Button("直前の文字を貼り付け") { controller.pasteLast() }
             .keyboardShortcut("v", modifiers: [.control, .option, .command])
             .disabled(controller.lastText == nil)

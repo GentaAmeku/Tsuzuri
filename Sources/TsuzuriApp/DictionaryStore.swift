@@ -45,7 +45,7 @@ final class DictionaryStore {
         }
     }
 
-    /// Soniox に渡す語(上限まで)
+    /// 認識に渡す語(上限まで。Mac 内の認識は、さらに上位40語に絞る)
     func hintTerms(now: Date = Date()) -> [String] {
         HintSelector.select(entries: dictionary.entries, usage: usage, now: now)
     }

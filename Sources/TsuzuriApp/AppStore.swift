@@ -12,6 +12,11 @@ final class AppStore {
         didSet { UserDefaults.standard.set(keepAudio, forKey: Self.keepAudioKey) }
     }
 
+    /// Soniox を使わず、Mac 内(WhisperKit)だけで認識するか(メニューの手動の切り替え)
+    var localOnly: Bool {
+        didSet { UserDefaults.standard.set(localOnly, forKey: Self.localOnlyKey) }
+    }
+
     /// 日本語と英字のあいだに半角スペースを入れるか
     var waObunSpacing: Bool {
         didSet { UserDefaults.standard.set(waObunSpacing, forKey: Self.waObunSpacingKey) }
@@ -22,6 +27,7 @@ final class AppStore {
     @ObservationIgnored private let audioDirectory: URL
     private static let keepAudioKey = "keepAudio"
     private static let waObunSpacingKey = "waObunSpacing"
+    private static let localOnlyKey = "localOnly"
 
     init() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -30,6 +36,7 @@ final class AppStore {
         audioDirectory = directory.appending(path: "audio", directoryHint: .isDirectory)
         keepAudio = UserDefaults.standard.object(forKey: Self.keepAudioKey) as? Bool ?? true
         waObunSpacing = UserDefaults.standard.object(forKey: Self.waObunSpacingKey) as? Bool ?? true
+        localOnly = UserDefaults.standard.bool(forKey: Self.localOnlyKey)
         try? FileManager.default.createDirectory(at: audioDirectory, withIntermediateDirectories: true)
         if let lines = try? String(contentsOf: historyURL, encoding: .utf8) {
             history = DictationHistory.decode(lines)

@@ -90,6 +90,12 @@ final class DictationRun {
         }
     }
 
+    /// 録音だけを止めて音声を返す(Mac 内で認識するとき。Soniox にはつないでいない)
+    func stopRecording() -> [Float] {
+        sender?.cancel()
+        return stopCapture()
+    }
+
     /// 取り消す(Esc・同時押し)。音声も文字も残さない
     func cancel() {
         isCancelled = true

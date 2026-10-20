@@ -20,11 +20,16 @@ final class RecordingHUD {
     var level: Float = 0
     /// 録音中に分かった失敗(つながらないなど)。録音は続ける
     var warning: String?
+    /// 使っている認識(Soniox・Mac 内)
+    private(set) var engineLabel = "Soniox"
+    /// 確定を待つ間に出す文
+    private(set) var finishingMessage = "確定を待っています"
 
     @ObservationIgnored private var panel: NSPanel?
     @ObservationIgnored private var noticeTask: Task<Void, Never>?
 
-    func showRecording() {
+    func showRecording(engine: String) {
+        engineLabel = engine
         finalText = ""
         tentativeText = ""
         warning = nil
@@ -33,7 +38,8 @@ final class RecordingHUD {
         setMode(.recording)
     }
 
-    func showFinishing() {
+    func showFinishing(_ message: String) {
+        finishingMessage = message
         setMode(.finishing)
     }
 
@@ -118,7 +124,7 @@ struct HUDView: View {
                 transcript
                 Spacer(minLength: 0)
                 LevelBars(level: hud.level)
-                Text(hud.warning == nil ? "Soniox" : "Soniox ✕")
+                Text(hud.warning == nil ? hud.engineLabel : "\(hud.engineLabel) ✕")
                     .font(.caption)
                     .foregroundStyle(hud.warning == nil ? .white.opacity(0.6) : .orange)
             }
@@ -150,7 +156,7 @@ struct HUDView: View {
             text += note
         }
         if text.characters.isEmpty {
-            var placeholder = AttributedString(hud.mode == .finishing ? "確定を待っています" : "話してください")
+            var placeholder = AttributedString(hud.mode == .finishing ? hud.finishingMessage : "話してください")
             placeholder.foregroundColor = .white.opacity(0.45)
             text = placeholder
         }

@@ -1,12 +1,11 @@
 import Foundation
 import TsuzuriCore
-import TsuzuriEngines
 @preconcurrency import WhisperKit
 
-enum WhisperKitEngineError: Error, CustomStringConvertible {
+public enum WhisperKitEngineError: Error, CustomStringConvertible {
     case modelNotDownloaded(String)
 
-    var description: String {
+    public var description: String {
         switch self {
         case let .modelNotDownloaded(model):
             "WhisperKit のモデル \(model) がまだありません(large-v3-v20240930_626MB なら約626MB)。--allow-download を付けると ~/Library/Caches/Tsuzuri/models に取得します"
@@ -14,14 +13,34 @@ enum WhisperKitEngineError: Error, CustomStringConvertible {
     }
 }
 
-/// 評価用の WhisperKit。段階0で Mac 内の既定に選ばれたら TsuzuriEngines へ移す
-struct WhisperKitEngine {
-    let pipe: WhisperKit
-    let model: String
+/// Mac 内の認識(段階0で既定に選んだ WhisperKit)。評価の CLI とアプリが使う。
+/// モデルは ~/Library/Caches/Tsuzuri/models に置き、`allowDownload` が無ければ取得しない
+public struct WhisperKitEngine: @unchecked Sendable {
+    public static let defaultModel = "large-v3-v20240930_626MB"
+    /// Whisper の前置きの文に入れる語の数(設計書「語のヒントは、費用と上限があるので上位から選ぶ」)
+    public static let hintLimit = 40
 
-    static func load(model: String, allowDownload: Bool) async throws -> WhisperKitEngine {
+    let pipe: WhisperKit
+    public let model: String
+
+    public static func load(model: String, allowDownload: Bool) async throws -> WhisperKitEngine {
         let cache = try ModelCache.directory()
-        guard allowDownload || isDownloaded(model: model, in: cache) else {
+        // 手元にあれば、その場所を渡して取得を切る(取得を許すと、手元にあっても配布元へ確かめに行くため)
+        if let folder = localFolder(model: model, in: cache) {
+            let config = WhisperKitConfig(
+                model: model,
+                downloadBase: cache,
+                modelFolder: folder.path,
+                tokenizerFolder: cache,
+                verbose: false,
+                logLevel: .error,
+                prewarm: true,
+                load: true,
+                download: false
+            )
+            return WhisperKitEngine(pipe: try await WhisperKit(config), model: model)
+        }
+        guard allowDownload else {
             throw WhisperKitEngineError.modelNotDownloaded(model)
         }
         let config = WhisperKitConfig(
@@ -36,15 +55,15 @@ struct WhisperKitEngine {
         return WhisperKitEngine(pipe: try await WhisperKit(config), model: model)
     }
 
-    /// 取得済みのモデルのフォルダ(名前の末尾がモデル名)があるか
-    static func isDownloaded(model: String, in cache: URL) -> Bool {
+    /// 取得済みのモデルのフォルダ(名前の末尾がモデル名)
+    public static func localFolder(model: String, in cache: URL) -> URL? {
         guard let enumerator = FileManager.default.enumerator(at: cache, includingPropertiesForKeys: [.isDirectoryKey]) else {
-            return false
+            return nil
         }
-        return enumerator.contains { ($0 as? URL)?.lastPathComponent.hasSuffix(model) == true }
+        return enumerator.lazy.compactMap { $0 as? URL }.first { $0.lastPathComponent.hasSuffix(model) }
     }
 
-    func transcribe(samples: [Float], terms: [String]) async throws -> Transcription {
+    public func transcribe(samples: [Float], terms: [String]) async throws -> Transcription {
         let options = DecodingOptions(
             language: "ja",
             temperature: 0,

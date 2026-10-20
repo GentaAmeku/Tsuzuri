@@ -22,8 +22,14 @@ let package = Package(
     targets: [
         // 副作用の無い処理。テストの中心
         .target(name: "TsuzuriCore"),
-        // 認識・キーチェーン・音声ファイルなど、OS や外部とやり取りする処理
-        .target(name: "TsuzuriEngines", dependencies: ["TsuzuriCore"]),
+        // 認識(Soniox・WhisperKit・Apple)・キーチェーン・音声ファイルなど、OS や外部とやり取りする処理
+        .target(
+            name: "TsuzuriEngines",
+            dependencies: [
+                "TsuzuriCore",
+                .product(name: "WhisperKit", package: "WhisperKit")
+            ]
+        ),
         // 評価セットと結果の読み書き。tsuzuri-eval と Tools/Qwen3Eval が使う
         .target(name: "TsuzuriEvalKit", dependencies: ["TsuzuriCore", "TsuzuriEngines"]),
         .executableTarget(

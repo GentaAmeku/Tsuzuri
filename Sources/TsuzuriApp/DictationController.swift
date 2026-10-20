@@ -4,7 +4,8 @@ import Observation
 import TsuzuriCore
 import TsuzuriEngines
 
-/// アプリ全体のまとめ役。キーの出来事を状態の移り変わりに通し、録音・Soniox・貼り付け・履歴をつなぐ
+/// アプリ全体のまとめ役。キーの出来事を状態の移り変わりに通し、録音・認識・整える・貼り付け・履歴をつなぐ。
+/// 認識は Soniox が主で、失敗したら手元の録音を Mac 内(WhisperKit)で認識し直し、その後5分は Mac 内を使う
 @Observable
 final class DictationController {
     enum Phase {
@@ -21,11 +22,18 @@ final class DictationController {
     let hud = RecordingHUD()
     let store = AppStore()
     let dictionary: DictionaryStore
+    let local = LocalRecognizer()
     let permissions = Permissions()
+    /// Soniox が失敗したあと、この時刻までは Mac 内で認識する
+    private(set) var fallbackUntil: Date?
+    /// 失敗のあと Mac 内を使う時間(設計書の初期値)
+    static let fallbackSeconds: TimeInterval = 5 * 60
 
     @ObservationIgnored private var machine = HotkeyStateMachine()
     @ObservationIgnored private var keyMonitor: KeyMonitor?
     @ObservationIgnored private var run: DictationRun?
+    /// いまの録音を Mac 内で認識するか(録音を始めたときに決める)
+    @ObservationIgnored private var runIsLocal = false
     @ObservationIgnored private var chordTimer: Task<Void, Never>?
     @ObservationIgnored private var apiKey: String?
     @ObservationIgnored private lazy var settingsWindow = SettingsWindow(controller: self)
@@ -34,7 +42,21 @@ final class DictationController {
         dictionary = DictionaryStore(directory: store.directory)
     }
 
-    var isReady: Bool { isListening && hasAPIKey == true && permissions.microphone == .authorized }
+    var isReady: Bool { isListening && (store.localOnly || hasAPIKey == true) && permissions.microphone == .authorized }
+
+    /// 次の録音を Mac 内で認識するか
+    var usesLocal: Bool {
+        store.localOnly || (fallbackUntil.map { $0 > Date() } ?? false)
+    }
+
+    /// メニューに出す、いまの認識
+    var engineLine: String {
+        if store.localOnly { return "認識: Mac 内(WhisperKit)" }
+        if let until = fallbackUntil, until > Date() {
+            return "認識: Mac 内(Soniox の失敗のあと、\(until.formatted(date: .omitted, time: .shortened)) まで)"
+        }
+        return "認識: Soniox"
+    }
 
     var lastText: String? { DictationHistory.lastText(in: store.history) }
 
@@ -44,8 +66,8 @@ final class DictationController {
         case .finishing: return "文字の確定を待っています"
         case .idle:
             if !isListening { return "アクセシビリティの権限が要ります" }
-            if hasAPIKey == nil { return "キーチェーンの確認を待っています" }
-            if hasAPIKey == false { return "Soniox の API キーが未登録です" }
+            if !store.localOnly, hasAPIKey == nil { return "キーチェーンの確認を待っています" }
+            if !store.localOnly, hasAPIKey == false { return "Soniox の API キーが未登録です" }
             if permissions.microphone != .authorized { return "マイクの権限が要ります" }
             if dictionary.loadError != nil { return "辞書のファイルを読めません(設定を見てください)" }
             return "待機中(右⌘で録音)"
@@ -55,6 +77,8 @@ final class DictationController {
     func start() {
         store.purgeOldAudio()
         reloadAPIKey()
+        // 失敗したときにすぐ使えるよう、Mac 内の認識を裏で読み込んでおく
+        local.prewarm()
         startListening()
         if !permissions.allGranted {
             showSettings()
@@ -108,7 +132,8 @@ final class DictationController {
             showSettings()
             return abort("マイクの権限がありません。設定から許可してください")
         }
-        guard apiKey != nil else {
+        let isLocal = usesLocal
+        guard isLocal || apiKey != nil else {
             showSettings()
             return abort(hasAPIKey == nil
                 ? "キーチェーンの確認を待っています。確認の画面で「許可」を押してください"
@@ -123,6 +148,7 @@ final class DictationController {
         }
         // 表示は、同時押しでないと分かってつなぐときに出す(⌘C のたびにちらつかせない)
         self.run = run
+        runIsLocal = isLocal
         let window = machine.settings.chordWindowSeconds
         chordTimer = Task { [weak self] in
             try? await Task.sleep(for: .seconds(window))
@@ -138,9 +164,11 @@ final class DictationController {
     }
 
     private func connect() {
-        guard let run, let apiKey else { return }
+        guard let run else { return }
         phase = .recording
-        hud.showRecording()
+        hud.showRecording(engine: runIsLocal ? "Mac 内" : "Soniox")
+        // Mac 内で認識するときは、止めてから録音をまとめて渡す(話している途中の文字は出ない)
+        guard !runIsLocal, let apiKey else { return }
         let hud = hud
         run.connect(
             apiKey: apiKey,
@@ -166,10 +194,14 @@ final class DictationController {
         chordTimer?.cancel()
         guard let run else { return }
         phase = .finishing
-        hud.showFinishing()
+        let isLocal = runIsLocal
+        hud.showFinishing(isLocal ? "Mac 内で認識しています" : "確定を待っています")
         Task {
-            let outcome = await run.stop()
-            await complete(run, outcome)
+            if isLocal {
+                await recognizeLocally(run.stopRecording(), run: run, sonioxFailure: nil)
+            } else {
+                await complete(run, await run.stop())
+            }
             if self.run === run {
                 self.run = nil
                 phase = .idle
@@ -180,25 +212,53 @@ final class DictationController {
 
     private func complete(_ run: DictationRun, _ outcome: DictationRun.Outcome) async {
         guard !run.isCancelled else { return }
-        let app = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         switch outcome {
         case let .failed(message, samples):
-            let audio = store.saveAudio(samples, startedAt: run.startedAt)
-            store.record(HistoryEntry(date: run.startedAt, app: app, engine: "soniox", raw: "", text: "", audio: audio, error: message))
-            hud.notice(audio == nil ? message : "\(message)。録音は履歴に残しました")
+            fallbackUntil = Date().addingTimeInterval(Self.fallbackSeconds)
+            await recognizeLocally(samples, run: run, sonioxFailure: message)
         case let .text(text, samples):
             let audio = store.saveAudio(samples, startedAt: run.startedAt)
-            guard !text.isEmpty else {
-                hud.notice("聞き取れる言葉がありませんでした")
-                return
-            }
-            let shaped = dictionary.shaper(waObunSpacing: store.waObunSpacing).shape(text)
-            store.record(HistoryEntry(date: run.startedAt, app: app, engine: "soniox", raw: text, text: shaped, audio: audio))
-            dictionary.recordUsage(in: shaped)
-            switch await Paster.paste(shaped) {
-            case .pasted: hud.hide()
-            case .clipboardOnly: hud.notice("入力欄が無いので、クリップボードに残しました")
-            }
+            await deliver(text, engine: "soniox", audio: audio, run: run)
+        }
+    }
+
+    /// 手元の録音を Mac 内で認識する。Soniox の失敗のあとなら、その理由も知らせる
+    private func recognizeLocally(_ samples: [Float], run: DictationRun, sonioxFailure: String?) async {
+        let audio = store.saveAudio(samples, startedAt: run.startedAt)
+        // 無音に近い録音を渡すと、Whisper は文を作ってしまう
+        guard SpeechPresence.hasSpeech(samples) else {
+            hud.notice("聞き取れる言葉がありませんでした")
+            return
+        }
+        hud.showFinishing("Mac 内で認識しています")
+        do {
+            let text = try await local.transcribe(samples, terms: dictionary.hintTerms())
+            guard !run.isCancelled else { return }
+            await deliver(text, engine: "whisperkit", audio: audio, run: run, notice: sonioxFailure.map { "\($0)。Mac 内で認識しました" })
+        } catch {
+            guard !run.isCancelled else { return }
+            let message = [sonioxFailure, "\(error)"].compactMap { $0 }.joined(separator: "。")
+            let app = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+            store.record(HistoryEntry(date: run.startedAt, app: app, engine: "whisperkit", raw: "", text: "", audio: audio, error: message))
+            hud.notice(audio == nil ? message : "\(message)。録音は履歴に残しました")
+        }
+    }
+
+    /// 整えて貼り、履歴と使われた回数を残す
+    private func deliver(_ text: String, engine: String, audio: String?, run: DictationRun, notice: String? = nil) async {
+        guard !text.isEmpty else {
+            hud.notice("聞き取れる言葉がありませんでした")
+            return
+        }
+        let app = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        let shaped = dictionary.shaper(waObunSpacing: store.waObunSpacing).shape(text)
+        store.record(HistoryEntry(date: run.startedAt, app: app, engine: engine, raw: text, text: shaped, audio: audio))
+        dictionary.recordUsage(in: shaped)
+        switch await Paster.paste(shaped) {
+        case .pasted:
+            if let notice { hud.notice(notice) } else { hud.hide() }
+        case .clipboardOnly:
+            hud.notice("入力欄が無いので、クリップボードに残しました")
         }
     }
 
