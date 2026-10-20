@@ -68,7 +68,20 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 PLIST
 plutil -lint "$APP_DIR/Contents/Info.plist" >/dev/null
 
-codesign --force --sign "$IDENTITY" "$APP_DIR" >/dev/null
+# hardened runtime を付け、ほかのプログラムがライブラリを差し込んで権限を使えないようにする。
+# hardened runtime ではマイクに entitlement が要る
+ENTITLEMENTS="$ROOT_DIR/.build/Tsuzuri.entitlements"
+cat > "$ENTITLEMENTS" <<ENT
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.device.audio-input</key>
+  <true/>
+</dict>
+</plist>
+ENT
+codesign --force --options runtime --entitlements "$ENTITLEMENTS" --sign "$IDENTITY" "$APP_DIR" >/dev/null
 codesign --verify --deep --strict "$APP_DIR"
 
 if [[ "$INSTALL" == 1 ]]; then
