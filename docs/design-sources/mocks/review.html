@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>辞書の候補の確認(イメージ)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 840px; height: 470px; }
+  body {
+    font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+    background: linear-gradient(160deg, #dfe7f1 0%, #eef1f5 45%, #e6e0ee 100%);
+    color: #1d1d1f; position: relative; overflow: hidden;
+  }
+  .win {
+    position: absolute; left: 16px; top: 14px; width: 808px; height: 442px;
+    background: #fff; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06);
+    display: grid; grid-template-rows: auto auto 1fr auto;
+  }
+  .bar { height: 46px; display: flex; align-items: center; gap: 8px; padding: 0 16px; background: #f6f6f7; border-bottom: 1px solid #e6e6e8; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .bar .title { margin-left: 12px; font-size: 14px; font-weight: 700; }
+  .seg { margin-left: auto; display: flex; background: #e9e9ec; border-radius: 8px; padding: 2px; font-size: 12.5px; }
+  .seg span { padding: 5px 12px; border-radius: 6px; color: #444; }
+  .seg span.on { background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.12); color: #1d1d1f; font-weight: 600; }
+  .lead { padding: 10px 18px; font-size: 12.5px; color: #555; border-bottom: 1px solid #eee; }
+  .list { padding: 6px 14px; overflow: hidden; }
+  .row {
+    display: grid; grid-template-columns: 22px 1.55fr 1.05fr 52px 44px 128px; gap: 10px; align-items: center;
+    padding: 11px 6px; border-bottom: 1px solid #f0f0f2;
+  }
+  .row.headrow { padding: 8px; font-size: 11.5px; color: #86868b; font-weight: 600; }
+  .cb { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #b8b8bf; display: grid; place-items: center; }
+  .cb.on { background: #0a64d8; border-color: #0a64d8; color: #fff; font-size: 11px; }
+  .pair { font-size: 14px; white-space: nowrap; }
+  .pair .from { color: #c1272d; text-decoration: line-through; text-decoration-thickness: 1px; }
+  .pair .arrow { color: #86868b; margin: 0 6px; }
+  .pair .to { color: #1d1d1f; font-weight: 700; }
+  .ctx { margin-top: 3px; font-size: 11.5px; white-space: nowrap; color: #86868b; }
+  .ctx mark { background: #fff3c4; color: #5c4b00; padding: 0 2px; border-radius: 3px; }
+  .kind { font-size: 12.5px; }
+  .kind .k { display: inline-block; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: 12px; }
+  .k.rep { background: #e6f0ff; color: #0a4fb0; }
+  .k.hint { background: #f1ecff; color: #5a3fb0; }
+  .kind .sub { display: block; margin-top: 4px; color: #86868b; font-size: 11.5px; }
+  .num { font-size: 13px; color: #333; font-variant-numeric: tabular-nums; }
+  .btns { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn { font-size: 12px; padding: 4px 10px; white-space: nowrap; border-radius: 7px; border: 1px solid #d0d0d6; background: #fff; color: #1d1d1f; }
+  .btn.pri { background: #0a64d8; border-color: #0a64d8; color: #fff; font-weight: 600; }
+  .foot { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-top: 1px solid #eee; background: #fafafb; font-size: 12.5px; color: #555; }
+  .foot .sp { margin-left: auto; }
+  .tag { position: absolute; left: 24px; bottom: 16px; font-size: 12px; color: #6e6e73; background: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 6px; }
+</style>
+</head>
+<body>
+  <div class="win">
+    <div class="bar">
+      <div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div>
+      <div class="title">辞書の候補</div>
+      <div class="seg"><span class="on">確認待ち 3</span><span>自動で入れたもの 2</span><span>捨てたもの 5</span></div>
+    </div>
+    <div class="lead">手で直した箇所から見つけた候補です。入れると次の音声入力から効きます。判定はこの Mac の中で行いました。</div>
+    <div class="list">
+      <div class="row headrow"><span></span><span>認識 → 直した後(直した場所)</span><span>種類</span><span>見た回数</span><span>確かさ</span><span></span></div>
+      <div class="row">
+        <div class="cb on">✓</div>
+        <div><div class="pair"><span class="from">クロードコード</span><span class="arrow">→</span><span class="to">Claude Code</span></div><div class="ctx">…その後 <mark>クロードコード</mark> でタスクを整理…(Slack)</div></div>
+        <div class="kind"><span class="k rep">表記の直し</span><span class="sub">次から置き換える</span></div>
+        <div class="num">1回</div><div class="num">86</div>
+        <div class="btns"><span class="btn">捨てる</span><span class="btn pri">入れる</span></div>
+      </div>
+      <div class="row">
+        <div class="cb on">✓</div>
+        <div><div class="pair"><span class="from">ネクストジェイエス</span><span class="arrow">→</span><span class="to">Next.js</span></div><div class="ctx">…<mark>ネクストジェイエス</mark> の設定を…(Claude)</div></div>
+        <div class="kind"><span class="k rep">表記の直し</span><span class="sub">次から置き換える</span></div>
+        <div class="num">1回</div><div class="num">84</div>
+        <div class="btns"><span class="btn">捨てる</span><span class="btn pri">入れる</span></div>
+      </div>
+      <div class="row">
+        <div class="cb"></div>
+        <div><div class="pair"><span class="from">性的</span><span class="arrow">→</span><span class="to">静的</span></div><div class="ctx">…<mark>性的</mark> サイトの構成を見直す…(Notion)</div></div>
+        <div class="kind"><span class="k hint">同音異義語の直し</span><span class="sub">ヒントだけ(置き換えない)</span></div>
+        <div class="num">1回</div><div class="num">78</div>
+        <div class="btns"><span class="btn">捨てる</span><span class="btn pri">入れる</span></div>
+      </div>
+    </div>
+    <div class="foot">
+      <span>今日 自動で入れたもの: 2件(通知の「取り消す」で戻せる)</span>
+      <span class="sp"></span>
+      <span class="btn">すべて捨てる</span><span class="btn pri">選んだ2件を入れる</span>
+    </div>
+  </div>
+</body>
+</html>

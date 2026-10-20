@@ -1,0 +1,6 @@
+.build/
+.swiftpm/
+eval/recordings/
+eval/results/
+Tools/*/.build/
+.DS_Store

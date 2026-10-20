@@ -1,0 +1,382 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "surface": "Claude Code",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "TanStack Query",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Vitest",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "PR",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "pnpm",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Biome",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "ESLint",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Prettier",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Next.js",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "App Router",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "README",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "mise",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Node",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Codex",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Storybook",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Playwright",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "GitHub Actions",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "CI",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Zod",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "worktree",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "main",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "rebase",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Swift",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "CGEventTap",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "MCP",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Gemini",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Claude",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Tailwind CSS",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Vercel",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Figma",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Notion",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Slack",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Google ドキュメント",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "INP",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "TypeScript",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Jira",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "GraphQL",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Apple Foundation Models",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "macOS",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "LLM",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Whisper",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "Soniox",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "AI",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "静的",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "仕様",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "既定",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "移行",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "構成",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "校正",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "機能",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "保証",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "公開",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    },
+    {
+      "surface": "記事",
+      "from": [],
+      "hint": true,
+      "pinned": false,
+      "source": "manual"
+    }
+  ],
+  "fillers": [
+    "えー",
+    "えーと",
+    "えっと",
+    "あのー"
+  ]
+}

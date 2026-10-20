@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>録音中の表示とメニュー(イメージ)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 820px; height: 560px; }
+  body {
+    font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+    background: linear-gradient(160deg, #dfe7f1 0%, #eef1f5 45%, #e6e0ee 100%);
+    color: #1d1d1f;
+    position: relative;
+    overflow: hidden;
+  }
+  .menubar {
+    position: absolute; inset: 0 0 auto 0; height: 30px;
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(20px);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; font-size: 13px; border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  .menubar .left { display: flex; gap: 18px; align-items: center; }
+  .menubar .left b { font-weight: 700; }
+  .menubar .right { display: flex; gap: 16px; align-items: center; color: #333; }
+  .status-icon {
+    position: relative; width: 30px; height: 22px; border-radius: 5px; display: grid; place-items: center;
+    background: rgba(0,0,0,0.12);
+  }
+  .wave { display: flex; gap: 2px; align-items: center; height: 12px; }
+  .wave i { display: block; width: 2px; background: #1d1d1f; border-radius: 1px; }
+  .badge {
+    position: absolute; top: -6px; right: -9px; min-width: 15px; height: 15px; padding: 0 4px;
+    border-radius: 8px; background: #ff3b30; color: #fff; font-size: 10px; font-weight: 700;
+    display: grid; place-items: center;
+  }
+  .window {
+    position: absolute; left: 22px; top: 50px; width: 380px; height: 300px;
+    background: #fff; border-radius: 12px; box-shadow: 0 18px 50px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  .window .bar { height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 14px; background: #f6f6f7; border-bottom: 1px solid #e6e6e8; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .window .title { margin-left: 10px; font-size: 13px; color: #555; font-weight: 600; }
+  .thread { padding: 22px 24px; display: grid; gap: 16px; font-size: 14px; line-height: 1.6; }
+  .msg { display: grid; grid-template-columns: 36px 1fr; gap: 10px; }
+  .avatar { width: 36px; height: 36px; border-radius: 8px; background: #c9d6e8; }
+  .msg .name { font-weight: 700; font-size: 13px; }
+  .msg .body { color: #333; }
+  .composer {
+    position: absolute; left: 18px; right: 18px; bottom: 16px; height: 70px;
+    border: 1px solid #c9c9cf; border-radius: 10px; padding: 12px 14px; font-size: 14px; color: #999;
+  }
+  .composer .caret { display: inline-block; width: 1.5px; height: 18px; background: #1d1d1f; vertical-align: -3px; margin-left: 2px; }
+  .menu {
+    position: absolute; top: 31px; right: 86px; width: 312px;
+    background: rgba(246,246,248,0.97); border-radius: 10px;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.08);
+    padding: 5px; font-size: 13px;
+  }
+  .menu .head { padding: 6px 10px 4px; color: #86868b; font-size: 12px; font-weight: 600; }
+  .menu .item { padding: 4px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .menu .item.hl { background: #0a64d8; color: #fff; }
+  .menu .item .key { color: #86868b; font-size: 12.5px; }
+  .menu .item.hl .key { color: rgba(255,255,255,0.8); }
+  .menu .note { padding: 0 10px 6px 30px; color: #86868b; font-size: 11.5px; }
+  .menu .sep { height: 1px; background: rgba(0,0,0,0.1); margin: 5px 8px; }
+  .menu .check { width: 16px; display: inline-block; }
+  .menu .count { background: #ff3b30; color: #fff; border-radius: 9px; padding: 0 7px; font-size: 11.5px; font-weight: 700; }
+  .menu .item.hl .count { background: #fff; color: #0a64d8; }
+  .hud {
+    position: absolute; left: 22px; bottom: 20px;
+    width: 572px; padding: 12px 16px; border-radius: 16px;
+    background: rgba(28,28,30,0.92); color: #fff;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+    display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center;
+  }
+  .rec { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .rec .r { width: 10px; height: 10px; border-radius: 50%; background: #ff453a; box-shadow: 0 0 0 4px rgba(255,69,58,0.25); }
+  .rec .t { color: rgba(255,255,255,0.6); font-variant-numeric: tabular-nums; font-weight: 500; }
+  .live { font-size: 13.5px; line-height: 1.5; white-space: nowrap; }
+  .live .fixed { color: #fff; }
+  .live .tentative { color: rgba(255,255,255,0.5); }
+  .engine { font-size: 11.5px; color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
+  .levels { display: flex; gap: 3px; align-items: center; height: 22px; margin-top: 6px; }
+  .levels i { display: block; width: 3px; border-radius: 2px; background: #30d158; }
+  .tag {
+    position: absolute; left: 24px; bottom: 16px; font-size: 12px; color: #6e6e73;
+    background: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 6px;
+  }
+  .callout { position: absolute; font-size: 12px; color: #0a64d8; font-weight: 600; background: rgba(255,255,255,0.9); padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(10,100,216,0.3); }
+</style>
+</head>
+<body>
+  <div class="menubar">
+    <div class="left"><span></span><b>Slack</b><span>ファイル</span><span>編集</span></div>
+    <div class="right">
+      <div class="status-icon"><div class="wave"><i style="height:5px"></i><i style="height:10px"></i><i style="height:12px"></i><i style="height:8px"></i><i style="height:4px"></i></div><div class="badge">3</div></div>
+      <span>Wi‑Fi</span><span>10:24</span>
+    </div>
+  </div>
+  <div class="window">
+    <div class="bar">
+      <div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div>
+      <div class="title"># dev-frontend</div>
+    </div>
+    <div class="thread">
+      <div class="msg"><div class="avatar"></div><div><div class="name">レビュー担当</div><div class="body">キャッシュまわり、今日中に見られそうですか?</div></div></div>
+    </div>
+    <div class="composer">メッセージを入力<span class="caret"></span></div>
+  </div>
+
+  <div class="menu">
+    <div class="head">KoeType(仮称)</div>
+    <div class="item"><span><span class="check">✓</span>Soniox で認識(クラウド)</span></div>
+    <div class="item"><span><span class="check"></span>Mac 内だけで認識</span></div>
+    <div class="note">Soniox が失敗したときは自動で Mac 内へ</div>
+    <div class="sep"></div>
+    <div class="item"><span>直前の文字をもう一度貼り付け</span><span class="key">⌃⌥⌘V</span></div>
+    <div class="item"><span>直前の録音を認識し直す</span></div>
+    <div class="sep"></div>
+    <div class="item hl"><span>辞書の候補を確認…</span><span class="count">3</span></div>
+    <div class="item"><span>選んだ語を辞書へ追加</span><span class="key">⌃⌥⌘D</span></div>
+    <div class="item"><span>辞書を開く…</span></div>
+    <div class="item"><span>履歴…</span></div>
+    <div class="sep"></div>
+    <div class="item"><span>設定…</span><span class="key">⌘,</span></div>
+    <div class="item"><span>終了</span><span class="key">⌘Q</span></div>
+  </div>
+
+  <div class="hud">
+    <div class="rec"><span class="r"></span>録音中 <span class="t">0:07</span></div>
+    <div>
+      <div class="live"><span class="fixed">Next.js のキャッシュ設定を見直して、</span><span class="tentative">PR の説明に</span></div>
+      <div class="levels">
+        <i style="height:6px"></i><i style="height:12px"></i><i style="height:18px"></i><i style="height:9px"></i><i style="height:14px"></i><i style="height:20px"></i><i style="height:11px"></i><i style="height:7px"></i><i style="height:15px"></i><i style="height:10px"></i><i style="height:5px"></i><i style="height:13px"></i><i style="height:8px"></i><i style="height:4px"></i>
+      </div>
+    </div>
+    <div class="engine">Soniox</div>
+  </div>
+
+  <div class="callout" style="left: 610px; top: 462px; width: 190px; line-height: 1.5;">白い字は確定した文字、薄い字はまだ変わりうる文字</div>
+</body>
+</html>

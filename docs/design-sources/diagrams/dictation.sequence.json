@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "1回の音声入力の流れ",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      740,
+      820
+    ],
+    "legend": {
+      "mode": "hidden"
+    }
+  },
+  "participants": [
+    {
+      "id": "user",
+      "type": "external",
+      "label": "本人",
+      "sublabel": "右⌘キー"
+    },
+    {
+      "id": "app",
+      "type": "backend",
+      "label": "このアプリ",
+      "sublabel": "録音・整える"
+    },
+    {
+      "id": "soniox",
+      "type": "cloud",
+      "label": "Soniox",
+      "sublabel": "クラウド"
+    },
+    {
+      "id": "local",
+      "type": "backend",
+      "label": "Mac 内の認識",
+      "sublabel": "予備"
+    },
+    {
+      "id": "target",
+      "type": "frontend",
+      "label": "使うアプリ",
+      "sublabel": "Slack・Claude など"
+    }
+  ],
+  "segments": [
+    {
+      "from": 168,
+      "to": 372,
+      "label": "話している間"
+    },
+    {
+      "from": 388,
+      "to": 552,
+      "label": "キーを離したあと"
+    },
+    {
+      "from": 568,
+      "to": 772,
+      "label": "Soniox が失敗したとき"
+    }
+  ],
+  "messages": [
+    {
+      "id": "press",
+      "from": "user",
+      "to": "app",
+      "y": 196,
+      "label": "右⌘を押す",
+      "variant": "emphasis"
+    },
+    {
+      "id": "connect",
+      "from": "app",
+      "to": "soniox",
+      "y": 240,
+      "label": "接続・語のヒント"
+    },
+    {
+      "id": "stream",
+      "from": "app",
+      "to": "soniox",
+      "y": 284,
+      "label": "音声を流し続ける",
+      "variant": "emphasis"
+    },
+    {
+      "id": "partial",
+      "from": "soniox",
+      "to": "app",
+      "y": 328,
+      "label": "途中の文字",
+      "variant": "return"
+    },
+    {
+      "id": "release",
+      "from": "user",
+      "to": "app",
+      "y": 416,
+      "label": "右⌘を離す",
+      "variant": "emphasis"
+    },
+    {
+      "id": "finish",
+      "from": "app",
+      "to": "soniox",
+      "y": 460,
+      "label": "終わりの合図"
+    },
+    {
+      "id": "final",
+      "from": "soniox",
+      "to": "app",
+      "y": 504,
+      "label": "確定した文字",
+      "variant": "return"
+    },
+    {
+      "id": "paste",
+      "from": "app",
+      "to": "target",
+      "y": 540,
+      "label": "整えて貼り付け",
+      "variant": "emphasis"
+    },
+    {
+      "id": "error",
+      "from": "soniox",
+      "to": "app",
+      "y": 600,
+      "label": "エラー・応答なし",
+      "variant": "dashed"
+    },
+    {
+      "id": "retry",
+      "from": "app",
+      "to": "local",
+      "y": 644,
+      "label": "手元の録音を渡す",
+      "variant": "dashed"
+    },
+    {
+      "id": "local-text",
+      "from": "local",
+      "to": "app",
+      "y": 688,
+      "label": "文字(数秒後)",
+      "variant": "return"
+    },
+    {
+      "id": "paste-local",
+      "from": "app",
+      "to": "target",
+      "y": 732,
+      "label": "整えて貼り付け",
+      "variant": "dashed"
+    }
+  ],
+  "activations": [
+    {
+      "participant": "app",
+      "from": 190,
+      "to": 548,
+      "type": "backend"
+    },
+    {
+      "participant": "soniox",
+      "from": 234,
+      "to": 512,
+      "type": "cloud"
+    },
+    {
+      "participant": "app",
+      "from": 594,
+      "to": 740,
+      "type": "backend"
+    },
+    {
+      "participant": "local",
+      "from": 638,
+      "to": 696,
+      "type": "backend"
+    }
+  ]
+}

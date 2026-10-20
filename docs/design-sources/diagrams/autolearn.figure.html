@@ -1,0 +1,48 @@
+<!-- ai-handout-studio 図の生成器の出力。手で直さず、入力の JSON を直して作り直す。 -->
+<figure class="ds-figure">
+  <div class="ds-figure-frame">
+    <svg width="374" height="694" viewBox="-1 -1 374 694" role="img" aria-label="上から下へ流れる図。「⌘V で貼り付ける」から「本人が手で直す」へ。「本人が手で直す」から「直した箇所を取り出す」へ。「直した箇所を取り出す」から「種類と読みでふるう」へ。「種類と読みでふるう」から「LLM が種類を判定」へ。「LLM が種類を判定」から「確かさで分ける」へ。「確かさで分ける」から「自動で辞書へ」「確認待ちへ」の2つへ分かれる。「自動で辞書へ」「確認待ちへ」から「辞書」へ合流する。">
+      <line class="ds-link" x1="186" y1="48" x2="186" y2="84"/>
+      <polygon class="ds-arrow" points="182,84 190,84 186,92"/>
+      <line class="ds-link" x1="186" y1="140" x2="186" y2="176"/>
+      <polygon class="ds-arrow" points="182,176 190,176 186,184"/>
+      <line class="ds-link" x1="186" y1="232" x2="186" y2="268"/>
+      <polygon class="ds-arrow" points="182,268 190,268 186,276"/>
+      <line class="ds-link" x1="186" y1="324" x2="186" y2="360"/>
+      <polygon class="ds-arrow" points="182,360 190,360 186,368"/>
+      <line class="ds-link" x1="186" y1="416" x2="186" y2="452"/>
+      <polygon class="ds-arrow" points="182,452 190,452 186,460"/>
+      <line class="ds-link" x1="186" y1="508" x2="186" y2="530"/>
+      <line class="ds-link" x1="88" y1="530" x2="284" y2="530"/>
+      <line class="ds-link" x1="88" y1="530" x2="88" y2="544"/>
+      <polygon class="ds-arrow" points="84,544 92,544 88,552"/>
+      <line class="ds-link" x1="284" y1="530" x2="284" y2="544"/>
+      <polygon class="ds-arrow" points="280,544 288,544 284,552"/>
+      <line class="ds-link" x1="88" y1="622" x2="284" y2="622"/>
+      <line class="ds-link" x1="88" y1="600" x2="88" y2="622"/>
+      <line class="ds-link" x1="284" y1="600" x2="284" y2="622"/>
+      <line class="ds-link" x1="186" y1="622" x2="186" y2="636"/>
+      <polygon class="ds-arrow" points="182,636 190,636 186,644"/>
+      <rect class="ds-node" x="98" y="0" width="176" height="48"/>
+      <text x="186" y="29" text-anchor="middle">⌘V で貼り付ける</text>
+      <rect class="ds-node ds-node--outside" x="98" y="92" width="176" height="48"/>
+      <text x="186" y="121" text-anchor="middle">本人が手で直す</text>
+      <rect class="ds-node" x="98" y="184" width="176" height="48"/>
+      <text x="186" y="213" text-anchor="middle">直した箇所を取り出す</text>
+      <rect class="ds-node" x="98" y="276" width="176" height="48"/>
+      <text x="186" y="305" text-anchor="middle">種類と読みでふるう</text>
+      <rect class="ds-node" x="98" y="368" width="176" height="48"/>
+      <text x="186" y="397" text-anchor="middle">LLM が種類を判定</text>
+      <polygon class="ds-node" points="112,460 260,460 274,484 260,508 112,508 98,484"/>
+      <text x="186" y="489" text-anchor="middle">確かさで分ける</text>
+      <rect class="ds-node" x="0" y="552" width="176" height="48"/>
+      <text x="88" y="581" text-anchor="middle">自動で辞書へ</text>
+      <rect class="ds-node" x="196" y="552" width="176" height="48"/>
+      <text x="284" y="581" text-anchor="middle">確認待ちへ</text>
+      <path class="ds-node" d="M98 650 a88 6 0 0 1 176 0 v36 a88 6 0 0 1 -176 0 z"/>
+      <path class="ds-node" d="M98 650 a88 6 0 0 0 176 0"/>
+      <text x="186" y="676" text-anchor="middle">辞書</text>
+    </svg>
+  </div>
+  <figcaption>辞書の自動追加の流れ。ふるいと判定で落ちた直しは辞書に入れない。確認待ちは本人が承認したときに辞書へ入る</figcaption>
+</figure>
