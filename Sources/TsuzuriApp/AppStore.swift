@@ -65,6 +65,10 @@ final class AppStore {
         }
     }
 
+    func audioURL(_ name: String) -> URL {
+        audioDirectory.appending(path: name)
+    }
+
     /// 7日を過ぎた音声を消す
     func purgeOldAudio() {
         let files = (try? FileManager.default.contentsOfDirectory(at: audioDirectory, includingPropertiesForKeys: [.creationDateKey])) ?? []

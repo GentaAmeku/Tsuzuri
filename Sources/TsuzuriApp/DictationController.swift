@@ -125,6 +125,11 @@ final class DictationController {
     // MARK: 1回の音声入力
 
     private func startCapture() {
+        guard phase == .idle else {
+            // 直前の録音を認識し直している間は、新しく録らない
+            machine.reset()
+            return
+        }
         if IsSecureEventInputEnabled() {
             return abort("パスワードなどの安全な入力の間は録音しません")
         }
@@ -218,7 +223,7 @@ final class DictationController {
             await recognizeLocally(samples, run: run, sonioxFailure: message)
         case let .text(text, samples):
             let audio = store.saveAudio(samples, startedAt: run.startedAt)
-            await deliver(text, engine: "soniox", audio: audio, run: run)
+            await deliver(text, engine: "soniox", audio: audio, startedAt: run.startedAt)
         }
     }
 
@@ -234,7 +239,7 @@ final class DictationController {
         do {
             let text = try await local.transcribe(samples, terms: dictionary.hintTerms())
             guard !run.isCancelled else { return }
-            await deliver(text, engine: "whisperkit", audio: audio, run: run, notice: sonioxFailure.map { "\($0)。Mac 内で認識しました" })
+            await deliver(text, engine: "whisperkit", audio: audio, startedAt: run.startedAt, notice: sonioxFailure.map { "\($0)。Mac 内で認識しました" })
         } catch {
             guard !run.isCancelled else { return }
             let message = [sonioxFailure, "\(error)"].compactMap { $0 }.joined(separator: "。")
@@ -245,14 +250,14 @@ final class DictationController {
     }
 
     /// 整えて貼り、履歴と使われた回数を残す
-    private func deliver(_ text: String, engine: String, audio: String?, run: DictationRun, notice: String? = nil) async {
+    private func deliver(_ text: String, engine: String, audio: String?, startedAt: Date, notice: String? = nil) async {
         guard !text.isEmpty else {
             hud.notice("聞き取れる言葉がありませんでした")
             return
         }
         let app = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         let shaped = dictionary.shaper(waObunSpacing: store.waObunSpacing).shape(text)
-        store.record(HistoryEntry(date: run.startedAt, app: app, engine: engine, raw: text, text: shaped, audio: audio))
+        store.record(HistoryEntry(date: startedAt, app: app, engine: engine, raw: text, text: shaped, audio: audio))
         dictionary.recordUsage(in: shaped)
         switch await Paster.paste(shaped) {
         case .pasted:
@@ -272,6 +277,42 @@ final class DictationController {
             try? await Task.sleep(for: .milliseconds(150))
             if await Paster.paste(text) == .clipboardOnly {
                 hud.notice("入力欄が無いので、クリップボードに残しました")
+            }
+        }
+    }
+
+    /// 音声を残した最新の履歴(認識し直しの対象)
+    var lastRecording: HistoryEntry? {
+        store.history.last { $0.audio != nil }
+    }
+
+    /// 直前の録音を、Soniox か Mac 内でもう一度文字にして貼る。誤った文字を選んでから使うと、選んだ部分が置き換わる
+    func reRecognizeLast(locally: Bool) {
+        guard phase == .idle, let entry = lastRecording, let name = entry.audio else { return }
+        phase = .finishing
+        hud.showFinishing(locally ? "Mac 内で認識し直しています" : "Soniox で認識し直しています")
+        Task {
+            defer { phase = .idle }
+            // メニューが閉じて元のアプリに戻るのを待つ
+            try? await Task.sleep(for: .milliseconds(150))
+            let samples: [Float]
+            do {
+                samples = try AudioFile.readSamples(from: store.audioURL(name))
+            } catch {
+                return hud.notice("録音を読めません(\(error))")
+            }
+            do {
+                let text: String
+                if locally {
+                    text = try await local.transcribe(samples, terms: dictionary.hintTerms())
+                } else {
+                    guard let apiKey else { return hud.notice("Soniox の API キーが未登録です") }
+                    let settings = SonioxSettings(terms: dictionary.hintTerms(), clientReferenceID: "tsuzuri-app", paceInRealTime: false, timeoutSeconds: 15)
+                    text = try await SonioxRealtime.transcribe(samples: samples, apiKey: apiKey, settings: settings).text
+                }
+                await deliver(text, engine: locally ? "whisperkit" : "soniox", audio: name, startedAt: Date())
+            } catch {
+                hud.notice("認識し直せませんでした(\(DictationRun.describe(error, connecting: false)))")
             }
         }
     }

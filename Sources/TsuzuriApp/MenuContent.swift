@@ -33,6 +33,13 @@ struct MenuContent: View {
         Button("直前の文字を貼り付け") { controller.pasteLast() }
             .keyboardShortcut("v", modifiers: [.control, .option, .command])
             .disabled(controller.lastText == nil)
+        Menu("直前の録音を認識し直す") {
+            Button("Soniox で") { controller.reRecognizeLast(locally: false) }
+                .disabled(controller.hasAPIKey != true)
+            Button("Mac 内で") { controller.reRecognizeLast(locally: true) }
+                .disabled(!controller.local.isAvailable)
+        }
+        .disabled(controller.lastRecording == nil || controller.phase != .idle)
         Menu("履歴") {
             let recent = controller.store.history.suffix(10).reversed()
             if recent.isEmpty {
