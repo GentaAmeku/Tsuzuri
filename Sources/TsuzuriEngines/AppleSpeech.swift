@@ -76,6 +76,8 @@ public enum AppleSpeech {
 
     /// 認識モデルが無ければ、許可されているときだけシステムに取得させる
     static func ensureAssets(for modules: [any SpeechModule], allowDownload: Bool) async throws {
+        // 入っていても取得の依頼が返ることがある(このプロセスへの割り当てが無いときなど)。入っていればそのまま使う
+        if await AssetInventory.status(forModules: modules) == .installed { return }
         guard let request = try await AssetInventory.assetInstallationRequest(supporting: modules) else { return }
         guard allowDownload else { throw AppleSpeechError.assetsNotInstalled }
         try await request.downloadAndInstall()
