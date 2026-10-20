@@ -5,6 +5,7 @@ import Foundation
 ///
 /// - カタカナだけ: 前後の字がカタカナや長音でないときだけ。中黒「・」や空白で区切られていても当てる
 /// - 英字: 前後が英数字でないときだけ。大文字小文字は区別しない
+/// - 英字とカタカナが混ざったもの(B テスト・グラフ QL): 端の字の種類ごとに、上の2つの境目で当てる。字の間の空白・中黒は問わない
 /// - 漢字・ひらがなを含むもの: 置き換えに使わない(同音異義語はヒントだけに使う)
 public struct TermReplacer: Sendable {
     struct Rule: @unchecked Sendable {
@@ -23,6 +24,8 @@ public struct TermReplacer: Sendable {
     public enum FromKind: Equatable {
         case katakana
         case latin
+        /// 英字(数字を含む)とカタカナが混ざったもの
+        case mixed
         /// 置き換えに使わない
         case unsupported
     }
@@ -32,6 +35,10 @@ public struct TermReplacer: Sendable {
         guard !letters.isEmpty else { return .unsupported }
         if letters.allSatisfy(\.isKatakana) { return .katakana }
         if from.allSatisfy({ $0.isASCII }) && letters.contains(where: \.isASCIILetter) { return .latin }
+        if letters.allSatisfy({ $0.isKatakana || $0.isASCIIAlphanumeric }),
+           letters.contains(where: \.isKatakana), letters.contains(where: \.isASCIILetter) {
+            return .mixed
+        }
         return .unsupported
     }
 
@@ -46,10 +53,22 @@ public struct TermReplacer: Sendable {
         case .latin:
             let body = from.split(separator: " ").map { NSRegularExpression.escapedPattern(for: String($0)) }.joined(separator: " ?")
             source = "(?<![A-Za-z0-9])" + body + "(?![A-Za-z0-9])"
+        case .mixed:
+            let body = letters.map { NSRegularExpression.escapedPattern(for: String($0)) }.joined(separator: "[・ ]?")
+            source = boundary(before: letters.first!) + body + boundary(after: letters.last!)
         case .unsupported:
             return nil
         }
         return try? NSRegularExpression(pattern: source, options: [.caseInsensitive])
+    }
+
+    /// 端の字の種類で決める境目。カタカナならカタカナと長音、英数字なら英数字が隣にないこと
+    static func boundary(before first: Character) -> String {
+        first.isKatakana ? "(?<![\\p{Katakana}ー])" : "(?<![A-Za-z0-9])"
+    }
+
+    static func boundary(after last: Character) -> String {
+        last.isKatakana ? "(?![\\p{Katakana}ー])" : "(?![A-Za-z0-9])"
     }
 
     /// 重なる当たりは長いものを先に採り、1回で置き換える(置き換えた後の文字を、別の語がもう一度直さないように)

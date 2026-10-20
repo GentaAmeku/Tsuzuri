@@ -93,6 +93,24 @@ struct TermReplacerTests {
         #expect(replacer.replace("クロードとクロードコード") == "ClaudeとClaude Code")
     }
 
+    @Test("英字とカタカナが混ざった聞き違いも、英字の公式の表記に直す")
+    func mixed() {
+        let replacer = TermReplacer(entries: [
+            entry("Vitest", from: ["Bテスト"]),
+            entry("GraphQL", from: ["グラフQL"])
+        ])
+        #expect(replacer.replace("いま B テストの設定を見直す") == "いま Vitestの設定を見直す")
+        #expect(replacer.replace("グラフ QL のスキーマ") == "GraphQL のスキーマ")
+        #expect(TermReplacer.kind(of: "Bテスト") == .mixed)
+    }
+
+    @Test("混ざった置き換え元も、端の字の種類で境目を決める")
+    func mixedBoundary() {
+        let replacer = TermReplacer(entries: [entry("Vitest", from: ["Bテスト"])])
+        #expect(replacer.replace("ABテストを回す") == "ABテストを回す")
+        #expect(replacer.replace("Bテストケース") == "Bテストケース")
+    }
+
     @Test("漢字の置き換え元は使わない(同音異義語はヒントだけ)")
     func kanjiIsIgnored() {
         #expect(replacer.replace("性的解析") == "性的解析")
