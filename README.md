@@ -30,11 +30,15 @@
    swift run tsuzuri-eval run --engine apple-speech --allow-download
    ```
 
-   Qwen3-ASR は依存が大きいので別のパッケージで測る(初回はモデル約2GB を取得)
+   Qwen3-ASR は依存が大きいので別のパッケージで測る(初回はモデル約2GB を取得)。MLX の GPU の部品(`mlx.metallib`)は `swift build` では作られないので、初回だけ Metal Toolchain(約690MB)を入れて作る
 
    ```bash
-   cd Tools/Qwen3Eval && swift run -c release Qwen3Eval --allow-download
+   xcodebuild -downloadComponent MetalToolchain
+   cd Tools/Qwen3Eval && swift build -c release && BUILD_DIR=$PWD/.build .build/checkouts/speech-swift/scripts/build_mlx_metallib.sh release
+   swift run -c release Qwen3Eval --allow-download
    ```
+
+   作らずに流すと `MLX error: Failed to load the default metallib` で止まる。`swift package clean` などで `.build/release` を消したら作り直す
 
 4. 表にする。`eval/results/report.md`(認識ごとの表)と `mistakes.md`(正解と違った文)を書く
 
