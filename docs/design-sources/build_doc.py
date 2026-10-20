@@ -88,6 +88,7 @@ section(
         bullets(
             [
                 "元にした動画: YouTube「クウキデザイン」の「誰でもほぼ無料で使える・プロレベルで使える音声入力作った」(2026-10-16)。作者は Mac 向けのオープンソースの音声入力アプリ VoiceInk をフォークし、同じ音声を5種類の認識にかけて比べた。クラウドの Soniox に辞書を足した組み合わせが最も正確で(誤り1割未満)、手で直した語はローカルの AI が辞書に足す。",
+                "名前: Tsuzuri(綴り)。言葉を綴ることと、辞書が正しい綴り(表記)を覚えていくことに重ねた(2026-10-20 に決定)。",
                 "本人: この設計書で「本人」と書くのは、このアプリを作って毎日使う人(この設計書の読み手)のこと。",
                 "本人が答えた質問票(2026-10-20)の回答: 音声はクラウドへ送ってよい。ただし「今は精度が落ちてもローカルで使いたい場合などに、切り替えられる仕組みが欲しい」。小さく自作する。辞書の自動追加は確かなものだけ自動にする。判定は Apple Foundation Models から始める。主に使う場面は AI への指示・Slack・文書。",
                 "段階: 段階0 測る → 段階1 使える最小(MVP)→ 段階2 辞書と予備 → 段階3 自動追加 → 段階4 仕上げ。中身は「作る順番」の章。",
@@ -554,7 +555,7 @@ section(
                     "マイクで精度が変わるため",
                 ),
                 (
-                    "4つの認識で文字にする: Soniox、WhisperKit(Whisper large-v3-turbo)、Qwen3-ASR(speech-swift で Swift から呼ぶ)、Apple の認識(macOS 26 の SpeechAnalyzer)。それぞれ語のヒントあり・なしで流す。ヒントの渡し方は、Soniox は `context.terms`、Whisper はプロンプト、Qwen3-ASR は文脈の文(speech-swift で渡せなければヒントなしだけ測る)、Apple の認識は DictationTranscriber の `contextualStrings`(SpeechTranscriber は語のヒントを使わない)",
+                    "4つの認識で文字にする: Soniox、WhisperKit(Whisper large-v3-turbo の圧縮版 large-v3-v20240930_626MB)、Qwen3-ASR(1.7B の 8bit 版を speech-swift で Swift から呼ぶ)、Apple の認識(macOS 26 の SpeechAnalyzer)。それぞれ語のヒントあり・なしで流す。ヒントの渡し方は、Soniox は `context.terms`、Whisper はプロンプト、Qwen3-ASR は文脈の文(speech-swift の context)、Apple の認識は DictationTranscriber の `contextualStrings`(SpeechTranscriber は語のヒントを使わない)",
                     "ヒントの効き目を分けて見るため",
                 ),
                 ("表にする: 文字誤り率・用語正答率・待ち時間", "決める材料を数字にするため"),
@@ -607,8 +608,7 @@ section(
     [
         bullets(
             [
-                "アプリの名前(リポジトリを作る前に本人が決める)",
-                "Soniox のアカウントと API キー(評価の CLI でキーチェーンに登録し、アプリも同じ項目を読む)",
+                "Soniox のアカウントと API キー(2026-10-20 に登録済み。権限は Speech-to-text, real-time だけにする。キーチェーンへは `swift run tsuzuri-eval set-key` で登録し、アプリも同じ項目を読む)",
                 "Apple Development の証明書(本人が作った Mac のメニューバーアプリ OnCue で使っているもの)。開発中のビルドもこれで署名する",
                 "Apple Intelligence を有効にした Mac(段階2から。読みの提案と判定に使う)",
             ]
@@ -652,10 +652,12 @@ section(
         table(
             ["ターゲット", "持つもの"],
             [
-                ["`KoeTypeCore`", "整える規則・置き換え・差分・ふるい・登録の判断・文字誤り率(副作用なし。テストの中心)"],
-                ["`KoeTypeEngines`", "Soniox の接続、Mac 内の認識(段階0で選んだもの)、Apple Foundation Models の呼び出し"],
-                ["`KoeTypeApp`", "メニューバー・録音・右⌘の検知・貼り付け・見守り・画面"],
-                ["`koetype-eval`", "評価セットの録音と、認識ごとの表を作る CLI"],
+                ["`TsuzuriCore`", "整える規則・置き換え・差分・ふるい・登録の判断・文字誤り率・用語正答率(副作用なし。テストの中心)"],
+                ["`TsuzuriEngines`", "Soniox の接続、Mac 内の認識(段階0で選んだもの)、Apple の認識、キーチェーン、Apple Foundation Models の呼び出し"],
+                ["`TsuzuriEvalKit`", "評価セットと結果の読み書き"],
+                ["`TsuzuriApp`", "メニューバー・録音・右⌘の検知・貼り付け・見守り・画面(段階1から)"],
+                ["`tsuzuri-eval`", "評価セットの録音と、認識ごとの表を作る CLI"],
+                ["`Tools/Qwen3Eval`", "Qwen3-ASR の評価。speech-swift は依存が大きいので別のパッケージにした"],
             ],
             row_label=True,
         ),
@@ -727,7 +729,7 @@ section(
                 ["通信", "Soniox を使うときだけ、音声と辞書の語(ヒント)を送る。Mac 内だけのときは通信しない"],
                 ["費用", "Soniox は1時間あたり約0.12ドル。加えて、語のヒントが1回ごとに入力テキストとして課金される見込み(1日100回で月に約2〜6ドル)"],
                 ["クリップボード", "貼り付けの間だけ書き換え、0.3秒後に戻す。入力欄が無いときは文字をクリップボードに残す"],
-                ["保存する場所", "`~/Library/Application Support/KoeType/`(辞書・使用回数・候補・履歴・7日分の音声・設定)。API キーはキーチェーン"],
+                ["保存する場所", "`~/Library/Application Support/Tsuzuri/`(辞書・使用回数・候補・履歴・7日分の音声・設定)。API キーはキーチェーン(サービス名 `Tsuzuri.Soniox`)"],
                 ["Apple Intelligence", "読みの提案(段階2)と判定(段階3)に使う。無効なら判定せず、すべて確認待ちになる"],
                 ["ほかの音声入力", "右⌘が、Codex アプリや macOS の音声入力のキーと重なっていないかを段階1で確かめる。重なっていたら、ほかの音声入力のキーを変える(このアプリの録音キーは段階4まで右⌘で固定のため)"],
             ],
@@ -745,7 +747,6 @@ section(
 section(
     "未決",
     [
-        open_("アプリの名前(いまは仮称 KoeType)。本人が、リポジトリを作る前に決める。"),
         open_("主の認識を Soniox のままにするか。段階0の表を見て、「精度の測り方」の基準で本人が決める。"),
         open_("Mac 内の認識の既定(WhisperKit・Qwen3-ASR・Apple の認識)。段階0の表を見て、「精度の測り方」の基準で本人が決める。"),
         open_("Soniox に毎回渡す語の数(初期値は100語)。段階2で費用を実測して本人が決める。"),
@@ -774,7 +775,7 @@ section(
 
 doc = {
     "id": "doc_20261020_002",
-    "title": "自分用 Mac 音声入力アプリの設計(仮称 KoeType)",
+    "title": "自分用 Mac 音声入力アプリ Tsuzuri の設計",
     "status": "draft",
     "lang": "ja",
     "meta": {
@@ -784,7 +785,7 @@ doc = {
     },
     "signature": {"org": "", "note": "設計書 / 2026-10-20"},
     "head": {
-        "title": "自分用 Mac 音声入力アプリの設計(仮称 KoeType)",
+        "title": "自分用 Mac 音声入力アプリ Tsuzuri の設計",
         "lede": "YouTube「クウキデザイン」の動画で紹介された音声入力の仕組み(Soniox+辞書+辞書の自動追加)を、日本語向けに作り直して小さく自作する。Swift のメニューバーアプリにし、辞書の判定は Mac の中の LLM で行う。",
     },
     "summary": {
