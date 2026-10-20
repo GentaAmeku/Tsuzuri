@@ -37,6 +37,7 @@ final class DictationController {
     @ObservationIgnored private var chordTimer: Task<Void, Never>?
     @ObservationIgnored private var apiKey: String?
     @ObservationIgnored private lazy var settingsWindow = SettingsWindow(controller: self)
+    @ObservationIgnored private lazy var dictionaryWindow = DictionaryWindow(store: dictionary)
 
     init() {
         dictionary = DictionaryStore(directory: store.directory)
@@ -320,6 +321,10 @@ final class DictationController {
     func copy(_ entry: HistoryEntry) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(entry.text, forType: .string)
+    }
+
+    func showDictionary() {
+        dictionaryWindow.show()
     }
 
     func showSettings() {

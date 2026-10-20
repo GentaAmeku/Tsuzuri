@@ -32,9 +32,14 @@ final class DictionaryStore {
         try? FileManager.default.copyItem(at: starter, to: dictionaryURL)
     }
 
+    /// ファイルの更新日時
+    var modificationDate: Date? {
+        (try? dictionaryURL.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+    }
+
     /// 更新日時が変わっていたら読み直す
     func reloadIfChanged() {
-        let modified = (try? dictionaryURL.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        let modified = modificationDate
         guard modified != loadedModificationDate else { return }
         loadedModificationDate = modified
         do {
@@ -61,6 +66,38 @@ final class DictionaryStore {
         for (surface, count) in counts {
             usage[surface, default: TermUsage()].record(count, at: date)
         }
+        writeUsage()
+    }
+
+    enum SaveError: Error, CustomStringConvertible {
+        case changedOnDisk
+
+        var description: String {
+            "編集を始めたあとに、辞書のファイルが別のところで直されました。読み直してから、もう一度直してください"
+        }
+    }
+
+    /// 編集画面の中身で、辞書のファイルを丸ごと書き換える。書く直前に更新日時を見て、
+    /// 編集を始めた時点(`base`)から変わっていたら書かない(手で直した中身を消さないため)
+    func save(entries: [DictionaryEntry], fillers: [String], base: Date?) throws {
+        guard modificationDate == base else { throw SaveError.changedOnDisk }
+        let file = DictionaryFile(version: dictionary.version, entries: entries, fillers: fillers)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+        try encoder.encode(file).write(to: dictionaryURL, options: .atomic)
+        // 足したばかりの語を先にヒントへ入れるため、足した日時を残す
+        let before = Set(dictionary.entries.map(\.surface))
+        let now = Date()
+        for entry in entries where !before.contains(entry.surface) {
+            usage[entry.surface, default: TermUsage()].addedAt = now
+        }
+        writeUsage()
+        dictionary = file
+        loadedModificationDate = modificationDate
+        loadError = nil
+    }
+
+    private func writeUsage() {
         do {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601

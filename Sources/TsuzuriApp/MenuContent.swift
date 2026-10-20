@@ -53,6 +53,7 @@ struct MenuContent: View {
             Button("履歴のフォルダを開く") { controller.store.revealInFinder() }
         }
         Divider()
+        Button("辞書を編集…") { controller.showDictionary() }
         Button("設定…") { controller.showSettings() }
             .keyboardShortcut(",")
         Button("Tsuzuri を終了") { NSApp.terminate(nil) }

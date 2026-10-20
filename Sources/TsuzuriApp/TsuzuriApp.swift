@@ -29,5 +29,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller.pasteLast()
         }
         controller.start()
+        // 動作の確かめ用: 起動時に窓を開く(open -a Tsuzuri --args --show-dictionary)
+        if CommandLine.arguments.contains("--show-dictionary") { controller.showDictionary() }
+        if CommandLine.arguments.contains("--show-settings") { controller.showSettings() }
     }
 }

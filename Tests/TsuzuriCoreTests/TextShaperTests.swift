@@ -198,3 +198,30 @@ struct HintSelectorTests {
         #expect(counts == ["Claude Code": 1, "Claude": 1])
     }
 }
+
+@Suite("辞書の編集")
+struct DictionaryEditingTests {
+    @Test("読点・カンマ・改行で区切り、空と重複を捨てる")
+    func parseList() {
+        #expect(DictionaryEditing.parseList("クロードコード、 cloud code ,クロードコード,\n") == ["クロードコード", "cloud code"])
+        #expect(DictionaryEditing.joinList(["バイテスト", "Bテスト"]) == "バイテスト、Bテスト")
+    }
+
+    @Test("表記が空の行と、同じ表記の行があると保存できない")
+    func blockingIssues() {
+        let issues = DictionaryEditing.issues([entry(""), entry("Slack"), entry("Slack")])
+        #expect(issues.contains(.emptySurface(row: 0)))
+        #expect(issues.contains(.duplicateSurface("Slack")))
+        #expect(issues.allSatisfy { $0.blocksSaving })
+    }
+
+    @Test("漢字の置き換え元と、別の語の表記を置き換え元にしたものは、注意だけ出す")
+    func warnings() {
+        let issues = DictionaryEditing.issues([entry("静的", from: ["性的"]), entry("Claude Code", from: ["Claude"]), entry("Claude")])
+        #expect(issues == [
+            .unusableFrom(surface: "静的", from: "性的"),
+            .fromIsAnotherSurface(surface: "Claude Code", from: "Claude")
+        ])
+        #expect(!issues.contains { $0.blocksSaving })
+    }
+}

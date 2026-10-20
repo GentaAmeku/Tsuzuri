@@ -122,13 +122,14 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Button("辞書のファイルを開く") { controller.dictionary.openInEditor() }
+                    Button("辞書を編集…") { controller.showDictionary() }
+                    Button("ファイルを開く") { controller.dictionary.openInEditor() }
                 }
                 Toggle("日本語と英字のあいだに半角スペースを入れる", isOn: $store.waObunSpacing)
             }
             Section("音声") {
                 Toggle("録音を7日間残す", isOn: $store.keepAudio)
-                Text("直前の録音の認識し直し(段階2)と、精度の評価に使います。失敗したときの録音もここに残ります。")
+                Text("メニューの「直前の録音を認識し直す」と、精度の評価に使います。失敗したときの録音もここに残ります。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
