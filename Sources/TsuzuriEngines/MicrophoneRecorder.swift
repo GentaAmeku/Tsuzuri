@@ -1,23 +1,28 @@
 @preconcurrency import AVFoundation
 import Foundation
-import TsuzuriEngines
 
-/// マイクの音を 16kHz・モノラルに変換しながらためる。止めると、たまった標本列を返す
-final class MicrophoneRecorder: @unchecked Sendable {
+/// マイクの音を 16kHz・モノラルに変換しながらためる。止めると、たまった標本列を返す。
+/// `onSamples` を渡すと、変換したそばから音声の処理の糸で受け取れる(話しながら送るため)
+public final class MicrophoneRecorder: @unchecked Sendable {
     private let engine = AVAudioEngine()
     private let lock = NSLock()
     private var samples: [Float] = []
+    private let onSamples: (@Sendable ([Float]) -> Void)?
+
+    public init(onSamples: (@Sendable ([Float]) -> Void)? = nil) {
+        self.onSamples = onSamples
+    }
 
     /// いまの既定の入力の機器の名前
-    static var currentInputName: String {
+    public static var currentInputName: String {
         AVCaptureDevice.default(for: .audio)?.localizedName ?? "不明"
     }
 
-    static func requestAccess() async -> Bool {
+    public static func requestAccess() async -> Bool {
         await AVCaptureDevice.requestAccess(for: .audio)
     }
 
-    func start() throws {
+    public func start() throws {
         let input = engine.inputNode
         let inputFormat = input.outputFormat(forBus: 0)
         guard let converter = AVAudioConverter(from: inputFormat, to: AudioFile.processingFormat) else {
@@ -30,7 +35,7 @@ final class MicrophoneRecorder: @unchecked Sendable {
         try engine.start()
     }
 
-    func stop() -> [Float] {
+    public func stop() -> [Float] {
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
         lock.lock()
@@ -38,6 +43,13 @@ final class MicrophoneRecorder: @unchecked Sendable {
         let recorded = samples
         samples = []
         return recorded
+    }
+
+    /// 音量の目安(0〜1)。標本の二乗平均の平方根を、話し声が棒の中ほどに来るよう広げる
+    public static func level(of samples: [Float]) -> Float {
+        guard !samples.isEmpty else { return 0 }
+        let rms = (samples.reduce(0) { $0 + $1 * $1 } / Float(samples.count)).squareRoot()
+        return min(1, rms * 8)
     }
 
     /// 音声の処理の糸で呼ばれる。変換器の内部の状態を保つため、渡し終えたら noDataNow を返す
@@ -55,12 +67,13 @@ final class MicrophoneRecorder: @unchecked Sendable {
         lock.lock()
         samples.append(contentsOf: chunk)
         lock.unlock()
+        onSamples?(chunk)
     }
 
-    enum RecorderError: Error, CustomStringConvertible {
+    public enum RecorderError: Error, CustomStringConvertible {
         case unsupportedFormat
 
-        var description: String { "マイクの形式を 16kHz・モノラルに変換できません" }
+        public var description: String { "マイクの形式を 16kHz・モノラルに変換できません" }
     }
 }
 

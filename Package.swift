@@ -11,11 +11,13 @@ let package = Package(
         .library(name: "TsuzuriCore", targets: ["TsuzuriCore"]),
         .library(name: "TsuzuriEngines", targets: ["TsuzuriEngines"]),
         .library(name: "TsuzuriEvalKit", targets: ["TsuzuriEvalKit"]),
-        .executable(name: "tsuzuri-eval", targets: ["TsuzuriEval"])
+        .executable(name: "tsuzuri-eval", targets: ["TsuzuriEval"]),
+        .executable(name: "TsuzuriApp", targets: ["TsuzuriApp"])
     ],
     dependencies: [
         .package(url: "https://github.com/argmaxinc/WhisperKit", from: "1.1.1"),
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0")
+        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
+        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "2.3.0")
     ],
     targets: [
         // 副作用の無い処理。テストの中心
@@ -33,6 +35,16 @@ let package = Package(
                 .product(name: "WhisperKit", package: "WhisperKit"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser")
             ]
+        ),
+        // メニューバーのアプリ(段階1から)。外部ライブラリは KeyboardShortcuts と、段階0で選ぶ Mac 内の認識だけ
+        .executableTarget(
+            name: "TsuzuriApp",
+            dependencies: [
+                "TsuzuriCore",
+                "TsuzuriEngines",
+                .product(name: "KeyboardShortcuts", package: "KeyboardShortcuts")
+            ],
+            swiftSettings: [.defaultIsolation(MainActor.self)]
         ),
         .testTarget(name: "TsuzuriCoreTests", dependencies: ["TsuzuriCore"])
     ]

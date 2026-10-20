@@ -44,16 +44,38 @@
 
 モデルは `~/Library/Caches/Tsuzuri/models` に置く(iCloud で同期されない場所)。`--allow-download` を付けない限り取得しない。
 
+## 段階1: アプリ(MVP)
+
+`/Applications/Tsuzuri.app` に置いて起動する。署名はキーチェーンの Apple Development の証明書で行う(権限の許可は署名に結び付くため)。
+
+```bash
+scripts/build-app-bundle.sh --install
+```
+
+初回は設定の窓が開くので、マイクとアクセシビリティを許可する。API キーは `tsuzuri-eval set-key` で登録したものを読む(初回はキーチェーンの確認で「許可」を押す)。
+
+| 操作 | すること |
+| --- | --- |
+| 右⌘を短く押す | 録音を始める。もう一度押すと止めて貼り付ける |
+| 右⌘を長く押す(0.5秒以上) | 押している間だけ録り、離すと貼り付ける |
+| 右⌘と一緒にほかのキー(0.2秒以内) | ⌘C などの同時押しとみなし、何もしない |
+| 録音中に Esc | 取り消す(Esc は相手のアプリに届けない) |
+| ⌃⌥⌘V | 直前の文字をもう一度貼る |
+
+履歴(直近100件)と7日分の音声は `~/Library/Application Support/Tsuzuri/` に置く。段階1では整える規則が無いので、Soniox の出力をそのまま貼る。Soniox に2秒でつながらない・確定が3秒を超えたときは、画面で知らせて録音を履歴に残す。
+
 ## フォルダ
 
 | 場所 | 中身 |
 | --- | --- |
-| `Sources/TsuzuriCore` | 副作用の無い処理(文字誤り率・用語正答率・集計)。テストの中心 |
-| `Sources/TsuzuriEngines` | Soniox・Apple の認識・キーチェーン・音声ファイル |
+| `Sources/TsuzuriCore` | 副作用の無い処理(文字誤り率・用語正答率・集計・右⌘の状態・履歴)。テストの中心 |
+| `Sources/TsuzuriEngines` | Soniox(話しながら送る接続)・Apple の認識・マイク・キーチェーン・音声ファイル |
+| `Sources/TsuzuriApp` | メニューバーのアプリ(右⌘の検知・録音中の表示・貼り付け・設定・履歴) |
 | `Sources/TsuzuriEvalKit` | 評価セットと結果の読み書き |
 | `Sources/TsuzuriEval` | 評価用の CLI(`tsuzuri-eval`) |
 | `Tools/Qwen3Eval` | Qwen3-ASR の評価(speech-swift を使う別のパッケージ) |
 | `eval/` | 評価セット(40文)と評価用の辞書(53語)。録音(`recordings/`)と結果(`results/`)は git に入れない |
+| `scripts/build-app-bundle.sh` | アプリを .app にまとめて署名する(`--install` で /Applications に置いて起動) |
 | `docs/design-sources/` | 設計書の図・画面のイメージの元と、組み立てスクリプト |
 
 ## 検証

@@ -49,6 +49,7 @@ public enum SonioxRealtime {
     /// 1回に送る音声。120ms(16kHz × 0.12秒)
     static let chunkSamples = 1_920
 
+    /// 録音済みの音声をまとめて認識する(評価用)
     public static func transcribe(samples: [Float], apiKey: String, settings: SonioxSettings) async throws -> Transcription {
         try await withTimeout(seconds: settings.timeoutSeconds) {
             try await stream(samples: samples, apiKey: apiKey, settings: settings)
@@ -56,17 +57,22 @@ public enum SonioxRealtime {
     }
 
     static func stream(samples: [Float], apiKey: String, settings: SonioxSettings) async throws -> Transcription {
-        var request = URLRequest(url: endpoint)
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        let task = URLSession.shared.webSocketTask(with: request)
-        task.resume()
-        defer { task.cancel(with: .normalClosure, reason: nil) }
-
-        try await task.send(.string(try startMessage(settings)))
-        async let received = receiveUntilFinished(task)
-        let endedAt = try await sendAudio(samples, over: task, paced: settings.paceInRealTime)
-        let (text, finishedAt) = try await received
-        return Transcription(text: text, latencySeconds: (finishedAt - endedAt).seconds)
+        let session = SonioxLiveSession(apiKey: apiKey, settings: settings)
+        do {
+            try await session.connect(timeoutSeconds: settings.timeoutSeconds)
+            for start in stride(from: 0, to: samples.count, by: chunkSamples) {
+                try await session.send(Array(samples[start..<min(start + chunkSamples, samples.count)]))
+                if settings.paceInRealTime {
+                    try await Task.sleep(for: .milliseconds(120))
+                }
+            }
+            let endedAt = ContinuousClock.now
+            let text = try await session.finish(timeoutSeconds: settings.timeoutSeconds)
+            return Transcription(text: text, latencySeconds: (ContinuousClock.now - endedAt).seconds)
+        } catch {
+            await session.cancel()
+            throw error
+        }
     }
 
     /// 接続の直後に送る設定メッセージ。API キーはここに書かず、接続時のヘッダーで渡す
@@ -85,36 +91,6 @@ public enum SonioxRealtime {
         return String(decoding: try encoder.encode(message), as: UTF8.self)
     }
 
-    static func sendAudio(_ samples: [Float], over task: URLSessionWebSocketTask, paced: Bool) async throws -> ContinuousClock.Instant {
-        let chunks = stride(from: 0, to: samples.count, by: chunkSamples).map {
-            Array(samples[$0..<min($0 + chunkSamples, samples.count)])
-        }
-        for chunk in chunks {
-            try await task.send(.data(AudioFile.pcm16LittleEndian(chunk)))
-            if paced {
-                try await Task.sleep(for: .milliseconds(120))
-            }
-        }
-        let endedAt = ContinuousClock.now
-        try await task.send(.string(""))
-        return endedAt
-    }
-
-    /// 確定したトークン(is_final)だけを連結する。確定トークンは一度だけ届く
-    static func receiveUntilFinished(_ task: URLSessionWebSocketTask) async throws -> (String, ContinuousClock.Instant) {
-        var finalText = ""
-        while true {
-            let response = try decode(try await task.receive())
-            if let code = response.errorCode {
-                throw SonioxError.server(code: code, type: response.errorType ?? "", message: response.errorMessage ?? "")
-            }
-            finalText += finalTokens(of: response)
-            if response.finished == true {
-                return (finalText, ContinuousClock.now)
-            }
-        }
-    }
-
     static func decode(_ message: URLSessionWebSocketTask.Message) throws -> Response {
         let data: Data
         switch message {
@@ -125,10 +101,6 @@ public enum SonioxRealtime {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(Response.self, from: data)
-    }
-
-    static func finalTokens(of response: Response) -> String {
-        (response.tokens ?? []).filter(\.isFinal).map(\.text).joined()
     }
 
     struct StartMessage: Encodable {
@@ -155,6 +127,10 @@ public enum SonioxRealtime {
         struct Token: Decodable {
             let text: String
             let isFinal: Bool
+        }
+
+        var assemblerTokens: [TranscriptAssembler.Token] {
+            (tokens ?? []).map { TranscriptAssembler.Token(text: $0.text, isFinal: $0.isFinal) }
         }
     }
 }
