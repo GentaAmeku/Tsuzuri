@@ -3,84 +3,116 @@
   "entries": [
     {
       "surface": "Claude Code",
-      "from": [],
+      "from": [
+        "クロードコード"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "TanStack Query",
-      "from": [],
+      "from": [
+        "タンスタッククエリ",
+        "タンスタッククエリー"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Vitest",
-      "from": [],
+      "from": [
+        "バイテスト",
+        "ヴァイテスト",
+        "ビテスト"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "PR",
-      "from": [],
+      "from": [
+        "ピーアール"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "pnpm",
-      "from": [],
+      "from": [
+        "ピーエヌピーエム"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Biome",
-      "from": [],
+      "from": [
+        "バイオーム"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "ESLint",
-      "from": [],
+      "from": [
+        "イーエスリント",
+        "eslint"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Prettier",
-      "from": [],
+      "from": [
+        "プリティア",
+        "プリティアー"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Next.js",
-      "from": [],
+      "from": [
+        "ネクストジェイエス",
+        "nextjs"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "App Router",
-      "from": [],
+      "from": [
+        "アップルーター",
+        "app router"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "README",
-      "from": [],
+      "from": [
+        "リードミー",
+        "readme"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "mise",
-      "from": [],
+      "from": [
+        "ミーズ"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
@@ -94,49 +126,67 @@
     },
     {
       "surface": "Codex",
-      "from": [],
+      "from": [
+        "コーデックス"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Storybook",
-      "from": [],
+      "from": [
+        "ストーリーブック",
+        "storybook"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Playwright",
-      "from": [],
+      "from": [
+        "プレイライト",
+        "playwright"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "GitHub Actions",
-      "from": [],
+      "from": [
+        "ギットハブアクションズ",
+        "github actions"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "CI",
-      "from": [],
+      "from": [
+        "シーアイ"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Zod",
-      "from": [],
+      "from": [
+        "ゾッド"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "worktree",
-      "from": [],
+      "from": [
+        "ワークツリー",
+        "work tree"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
@@ -150,14 +200,18 @@
     },
     {
       "surface": "rebase",
-      "from": [],
+      "from": [
+        "リベース"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Swift",
-      "from": [],
+      "from": [
+        "スウィフト"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
@@ -171,91 +225,123 @@
     },
     {
       "surface": "MCP",
-      "from": [],
+      "from": [
+        "エムシーピー"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Gemini",
-      "from": [],
+      "from": [
+        "ジェミニ",
+        "ジェミナイ"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Claude",
-      "from": [],
+      "from": [
+        "クロード"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Tailwind CSS",
-      "from": [],
+      "from": [
+        "テイルウィンドシーエスエス",
+        "tailwind css"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Vercel",
-      "from": [],
+      "from": [
+        "バーセル",
+        "ヴァーセル"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Figma",
-      "from": [],
+      "from": [
+        "フィグマ"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Notion",
-      "from": [],
+      "from": [
+        "ノーション"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Slack",
-      "from": [],
+      "from": [
+        "スラック"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Google ドキュメント",
-      "from": [],
+      "from": [
+        "グーグルドキュメント"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "INP",
-      "from": [],
+      "from": [
+        "アイエヌピー"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "TypeScript",
-      "from": [],
+      "from": [
+        "タイプスクリプト",
+        "typescript"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Jira",
-      "from": [],
+      "from": [
+        "ジラ",
+        "ジーラ"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "GraphQL",
-      "from": [],
+      "from": [
+        "グラフキューエル",
+        "graphql"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
@@ -269,35 +355,46 @@
     },
     {
       "surface": "macOS",
-      "from": [],
+      "from": [
+        "マックオーエス",
+        "macos"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "LLM",
-      "from": [],
+      "from": [
+        "エルエルエム"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Whisper",
-      "from": [],
+      "from": [
+        "ウィスパー"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "Soniox",
-      "from": [],
+      "from": [
+        "ソニオックス"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"
     },
     {
       "surface": "AI",
-      "from": [],
+      "from": [
+        "エーアイ"
+      ],
       "hint": true,
       "pinned": false,
       "source": "manual"

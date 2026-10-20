@@ -46,6 +46,8 @@
    swift run tsuzuri-eval report
    ```
 
+   `--shape` を付けると、保存した認識結果に段階2の整える規則(正規化・つなぎ言葉・`eval/dictionary.json` の置き換え・和欧間スペース)を当てた行も足す。録音は流し直さないので、Soniox の費用はかからない
+
 モデルは `~/Library/Caches/Tsuzuri/models` に置く(iCloud で同期されない場所)。`--allow-download` を付けない限り取得しない。
 
 ## 段階1: アプリ(MVP)
@@ -72,7 +74,7 @@ scripts/build-app-bundle.sh --install
 
 | 場所 | 中身 |
 | --- | --- |
-| `Sources/TsuzuriCore` | 副作用の無い処理(文字誤り率・用語正答率・集計・右⌘の状態・履歴)。テストの中心 |
+| `Sources/TsuzuriCore` | 副作用の無い処理(文字誤り率・用語正答率・集計・右⌘の状態・履歴・整える規則・置き換え・ヒントの選び方)。テストの中心 |
 | `Sources/TsuzuriEngines` | Soniox(話しながら送る接続)・Apple の認識・マイク・キーチェーン・音声ファイル |
 | `Sources/TsuzuriApp` | メニューバーのアプリ(右⌘の検知・録音中の表示・貼り付け・設定・履歴) |
 | `Sources/TsuzuriEvalKit` | 評価セットと結果の読み書き |
