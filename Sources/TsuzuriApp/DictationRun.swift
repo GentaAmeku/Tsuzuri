@@ -44,9 +44,9 @@ final class DictationRun {
         try recorder.start()
     }
 
-    /// Soniox につなぐ。つながるまでの音声は列にたまっていて、つながったら順に送る
-    func connect(apiKey: String, onUpdate: @escaping @Sendable (TranscriptAssembler) -> Void, onFailure: @escaping (String) -> Void) {
-        let settings = SonioxSettings(clientReferenceID: "tsuzuri-app", paceInRealTime: false)
+    /// Soniox につなぐ。`terms` は語のヒント。つながるまでの音声は列にたまっていて、つながったら順に送る
+    func connect(apiKey: String, terms: [String], onUpdate: @escaping @Sendable (TranscriptAssembler) -> Void, onFailure: @escaping (String) -> Void) {
+        let settings = SonioxSettings(terms: terms, clientReferenceID: "tsuzuri-app", paceInRealTime: false)
         let session = SonioxLiveSession(apiKey: apiKey, settings: settings, onUpdate: onUpdate)
         self.session = session
         let chunks = chunks

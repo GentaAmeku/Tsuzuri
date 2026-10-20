@@ -20,6 +20,7 @@ final class DictationController {
     private(set) var hasAPIKey: Bool?
     let hud = RecordingHUD()
     let store = AppStore()
+    let dictionary: DictionaryStore
     let permissions = Permissions()
 
     @ObservationIgnored private var machine = HotkeyStateMachine()
@@ -28,6 +29,10 @@ final class DictationController {
     @ObservationIgnored private var chordTimer: Task<Void, Never>?
     @ObservationIgnored private var apiKey: String?
     @ObservationIgnored private lazy var settingsWindow = SettingsWindow(controller: self)
+
+    init() {
+        dictionary = DictionaryStore(directory: store.directory)
+    }
 
     var isReady: Bool { isListening && hasAPIKey == true && permissions.microphone == .authorized }
 
@@ -42,6 +47,7 @@ final class DictationController {
             if hasAPIKey == nil { return "キーチェーンの確認を待っています" }
             if hasAPIKey == false { return "Soniox の API キーが未登録です" }
             if permissions.microphone != .authorized { return "マイクの権限が要ります" }
+            if dictionary.loadError != nil { return "辞書のファイルを読めません(設定を見てください)" }
             return "待機中(右⌘で録音)"
         }
     }
@@ -108,6 +114,7 @@ final class DictationController {
                 ? "キーチェーンの確認を待っています。確認の画面で「許可」を押してください"
                 : "Soniox の API キーが未登録です。設定で登録してください")
         }
+        dictionary.reloadIfChanged()
         let run = DictationRun(hud: hud)
         do {
             try run.startCapture()
@@ -137,6 +144,7 @@ final class DictationController {
         let hud = hud
         run.connect(
             apiKey: apiKey,
+            terms: dictionary.hintTerms(),
             onUpdate: { assembler in
                 Task { @MainActor in hud.update(assembler) }
             },
@@ -184,9 +192,10 @@ final class DictationController {
                 hud.notice("聞き取れる言葉がありませんでした")
                 return
             }
-            // 段階1には整える規則が無いので、認識の出力をそのまま貼る
-            store.record(HistoryEntry(date: run.startedAt, app: app, engine: "soniox", raw: text, text: text, audio: audio))
-            switch await Paster.paste(text) {
+            let shaped = dictionary.shaper(waObunSpacing: store.waObunSpacing).shape(text)
+            store.record(HistoryEntry(date: run.startedAt, app: app, engine: "soniox", raw: text, text: shaped, audio: audio))
+            dictionary.recordUsage(in: shaped)
+            switch await Paster.paste(shaped) {
             case .pasted: hud.hide()
             case .clipboardOnly: hud.notice("入力欄が無いので、クリップボードに残しました")
             }

@@ -33,6 +33,8 @@ SOURCE_REVISION="$(git rev-parse --short=12 HEAD)"
 rm -rf "$APP_DIR"
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 cp "$BIN_DIR/$PRODUCT" "$APP_DIR/Contents/MacOS/$PRODUCT"
+# 初めて起動したときに置く辞書。評価用の辞書と同じ語から始める(設計書「辞書の形と使い方」)
+cp "$ROOT_DIR/eval/dictionary.json" "$APP_DIR/Contents/Resources/starter-dictionary.json"
 
 cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

@@ -12,10 +12,16 @@ final class AppStore {
         didSet { UserDefaults.standard.set(keepAudio, forKey: Self.keepAudioKey) }
     }
 
+    /// 日本語と英字のあいだに半角スペースを入れるか
+    var waObunSpacing: Bool {
+        didSet { UserDefaults.standard.set(waObunSpacing, forKey: Self.waObunSpacingKey) }
+    }
+
     @ObservationIgnored let directory: URL
     @ObservationIgnored private let historyURL: URL
     @ObservationIgnored private let audioDirectory: URL
     private static let keepAudioKey = "keepAudio"
+    private static let waObunSpacingKey = "waObunSpacing"
 
     init() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -23,6 +29,7 @@ final class AppStore {
         historyURL = directory.appending(path: "history.jsonl")
         audioDirectory = directory.appending(path: "audio", directoryHint: .isDirectory)
         keepAudio = UserDefaults.standard.object(forKey: Self.keepAudioKey) as? Bool ?? true
+        waObunSpacing = UserDefaults.standard.object(forKey: Self.waObunSpacingKey) as? Bool ?? true
         try? FileManager.default.createDirectory(at: audioDirectory, withIntermediateDirectories: true)
         if let lines = try? String(contentsOf: historyURL, encoding: .utf8) {
             history = DictationHistory.decode(lines)

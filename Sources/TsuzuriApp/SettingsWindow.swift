@@ -110,6 +110,22 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            Section("辞書") {
+                LabeledContent("語の数") {
+                    Text("\(controller.dictionary.dictionary.entries.count) 語(ヒントに使う語は最大100語)")
+                }
+                if let error = controller.dictionary.loadError {
+                    Text(error).font(.caption).foregroundStyle(.orange)
+                }
+                HStack {
+                    Text("置き換え元(from)に聞き違いを足すと、正しい表記に直して貼ります。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button("辞書のファイルを開く") { controller.dictionary.openInEditor() }
+                }
+                Toggle("日本語と英字のあいだに半角スペースを入れる", isOn: $store.waObunSpacing)
+            }
             Section("音声") {
                 Toggle("録音を7日間残す", isOn: $store.keepAudio)
                 Text("直前の録音の認識し直し(段階2)と、精度の評価に使います。失敗したときの録音もここに残ります。")
