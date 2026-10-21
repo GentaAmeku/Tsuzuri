@@ -98,3 +98,63 @@ struct HotkeyStateMachineTests {
         #expect(machine.handle(.keyDown(at: 5)) == .init([.stop]))
     }
 }
+
+@Suite("録音中の Return(段階4)")
+struct HotkeyReturnTests {
+    func recording() -> HotkeyStateMachine {
+        var machine = HotkeyStateMachine()
+        _ = machine.handle(.keyDown(at: 0))
+        _ = machine.handle(.keyUp(at: 0.1))
+        return machine
+    }
+
+    @Test("録音中に Return を押すと止め、貼り付けたあとに送る。Return は相手のアプリに届けない")
+    func submitsWhileRecording() {
+        var machine = recording()
+        #expect(machine.handle(.returnKey(at: 3)) == .init([.stop, .submitAfterPaste], consume: true))
+        #expect(machine.state == .finishing)
+        #expect(machine.submitRequested)
+    }
+
+    @Test("確定を待つ間の Return も送る。何度押しても送るのは1回")
+    func submitsOnceWhileFinishing() {
+        var machine = recording()
+        _ = machine.handle(.keyDown(at: 3))
+        #expect(machine.handle(.returnKey(at: 3.2)) == .init([.submitAfterPaste], consume: true))
+        #expect(machine.handle(.returnKey(at: 3.3)) == .init(consume: true))
+    }
+
+    @Test("押してすぐの Return は ⌘Return とみなし、録音を捨てて相手のアプリへ届ける")
+    func chordWithReturn() {
+        var machine = HotkeyStateMachine()
+        _ = machine.handle(.keyDown(at: 0))
+        #expect(machine.handle(.returnKey(at: 0.1)) == .init([.discard]))
+        #expect(machine.state == .idle)
+    }
+
+    @Test("待機中の Return には何もしない")
+    func ignoresWhenIdle() {
+        var machine = HotkeyStateMachine()
+        #expect(machine.handle(.returnKey(at: 0)) == .init())
+    }
+
+    @Test("貼り終えたら、次の録音では送らない")
+    func resetsAfterFinished() {
+        var machine = recording()
+        _ = machine.handle(.returnKey(at: 3))
+        _ = machine.handle(.finished)
+        #expect(!machine.submitRequested)
+        _ = machine.handle(.keyDown(at: 10))
+        _ = machine.handle(.keyUp(at: 10.1))
+        #expect(machine.handle(.keyDown(at: 12)) == .init([.stop]))
+        #expect(!machine.submitRequested)
+    }
+
+    @Test("Esc で取り消したら、送らない")
+    func cancelClearsSubmit() {
+        var machine = recording()
+        _ = machine.handle(.returnKey(at: 3))
+        #expect(machine.handle(.escape) == .init([.cancel], consume: true))
+        #expect(!machine.submitRequested)
+    }
+}

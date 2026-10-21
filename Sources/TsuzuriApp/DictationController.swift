@@ -124,6 +124,9 @@ final class DictationController {
         case .connect: connect()
         case .discard, .cancel: cancel()
         case .stop: stop()
+        case .submitAfterPaste:
+            // 段階4で組み込む(段階3の判断のあと)。キーの検知はまだ Return をこの出来事として渡さない
+            break
         }
     }
 

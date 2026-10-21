@@ -20,6 +20,8 @@ public struct HotkeyStateMachine: Sendable {
         /// 押してから同時押しの秒数がたった
         case chordWindowElapsed
         case escape
+        /// Return が押された(段階4。録音中なら、貼り付けたあとに Return を送る)
+        case returnKey(at: Double)
         /// 確定・貼り付けまで終わった(失敗を含む)
         case finished
     }
@@ -35,6 +37,8 @@ public struct HotkeyStateMachine: Sendable {
         case stop
         /// 取り消す(何も貼り付けない)
         case cancel
+        /// 貼り付けたあとに Return を送る(段階4)。1回の録音で1度だけ出す
+        case submitAfterPaste
     }
 
     public struct Output: Sendable, Equatable {
@@ -50,6 +54,8 @@ public struct HotkeyStateMachine: Sendable {
 
     public var settings: HotkeySettings
     public private(set) var state: State = .idle
+    /// いまの録音で、貼り付けたあとに Return を送るか
+    public private(set) var submitRequested = false
 
     public init(settings: HotkeySettings = HotkeySettings()) {
         self.settings = settings
@@ -58,12 +64,14 @@ public struct HotkeyStateMachine: Sendable {
     /// 録音を始められなかったとき(安全な入力・権限が無いなど)に待機へ戻す
     public mutating func reset() {
         state = .idle
+        submitRequested = false
     }
 
     public mutating func handle(_ event: Event) -> Output {
         switch (state, event) {
         case let (.idle, .keyDown(at)):
             state = .armed(pressedAt: at)
+            submitRequested = false
             return Output([.startCapture])
 
         case let (.armed(pressedAt), .keyUp):
@@ -75,10 +83,22 @@ public struct HotkeyStateMachine: Sendable {
             state = .recording(pressedAt: pressedAt, keyHeld: false)
             return Output([.connect])
 
-        case let (.armed(pressedAt), .otherKeyDown(at)):
+        case let (.armed(pressedAt), .otherKeyDown(at)), let (.armed(pressedAt), .returnKey(at)):
+            // 押してすぐの Return は、ほかのキーと同じく同時押し(⌘Return)とみなし、相手のアプリへ届ける
             guard at - pressedAt <= settings.chordWindowSeconds else { return Output() }
             state = .idle
             return Output([.discard])
+
+        case (.recording, .returnKey):
+            // 押した瞬間に止め、貼り付けたあとに送る。Return は貼り付けより先に届かないよう止める
+            state = .finishing
+            submitRequested = true
+            return Output([.stop, .submitAfterPaste], consume: true)
+
+        case (.finishing, .returnKey):
+            guard !submitRequested else { return Output(consume: true) }
+            submitRequested = true
+            return Output([.submitAfterPaste], consume: true)
 
         case let (.armed(pressedAt), .chordWindowElapsed):
             state = .recording(pressedAt: pressedAt, keyHeld: true)
@@ -102,10 +122,12 @@ public struct HotkeyStateMachine: Sendable {
 
         case (.armed, .escape), (.recording, .escape), (.finishing, .escape):
             state = .idle
+            submitRequested = false
             return Output([.cancel], consume: true)
 
         case (.finishing, .finished):
             state = .idle
+            submitRequested = false
             return Output()
 
         default:
