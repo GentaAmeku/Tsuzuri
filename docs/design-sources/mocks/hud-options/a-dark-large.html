@@ -1,0 +1,54 @@
+<!doctype html><html lang='ja'><head><meta charset='utf-8'><title>案A</title><style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1280px; height: 860px; }
+body { font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif; background: #e9ecf1; position: relative; overflow: hidden; color: #1d1d1f; }
+.desk { position: absolute; left: 0; top: 0; width: 1280px; height: 700px; overflow: hidden;
+  background: linear-gradient(160deg, #c9d6ea 0%, #dfe4ee 45%, #d9d2e6 100%); }
+.menubar { position: absolute; left: 0; top: 0; right: 0; height: 26px; background: rgba(246,246,248,0.85); display: flex; align-items: center; padding: 0 14px; gap: 18px; font-size: 13px; }
+.menubar .app { font-weight: 700; }
+.menubar .right { margin-left: auto; display: flex; gap: 14px; align-items: center; }
+.mbicon { width: 18px; height: 18px; display: grid; place-items: center; font-size: 13px; }
+.win { position: absolute; left: 150px; top: 70px; width: 980px; height: 520px; background: #fff; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06); overflow: hidden; }
+.win .bar { height: 38px; background: #f5f5f7; border-bottom: 1px solid #e5e5ea; display: flex; align-items: center; gap: 8px; padding: 0 14px; }
+.dot3 { width: 12px; height: 12px; border-radius: 50%; }
+.win .side { position: absolute; left: 0; top: 38px; bottom: 0; width: 200px; background: #3f0e40; }
+.win .side div { color: #e8d9e8; font-size: 13px; padding: 7px 16px; opacity: .85 }
+.win .main { position: absolute; left: 200px; top: 38px; right: 0; bottom: 0; padding: 18px 22px; }
+.msg { display: flex; gap: 10px; margin-bottom: 16px; font-size: 14px; line-height: 1.5; }
+.avatar { width: 34px; height: 34px; border-radius: 6px; background: #c7d2fe; flex: none; }
+.input { position: absolute; left: 22px; right: 22px; bottom: 18px; height: 76px; border: 1.5px solid #9aa4b5; border-radius: 10px; padding: 12px 14px; font-size: 14px; color: #1d1d1f; }
+.caret { display: inline-block; width: 1.5px; height: 17px; background: #1d1d1f; vertical-align: -3px; }
+.strip { position: absolute; left: 0; top: 700px; width: 1280px; height: 160px; background: #f4f5f8; border-top: 1px solid #d9dce3; display: flex; align-items: center; justify-content: center; gap: 40px; }
+.strip .cap { position: absolute; left: 24px; top: 14px; font-size: 13px; color: #6e6e73; }
+.tag { position: absolute; right: 16px; top: 36px; font-size: 13px; color: #fff; background: rgba(0,0,0,0.55); padding: 4px 10px; border-radius: 6px; }
+
+.hud { position: absolute; left: 50%; transform: translateX(-50%); bottom: 34px; width: 720px; height: 104px; background: rgba(20,20,22,0.94); border-radius: 22px; display: flex; align-items: center; gap: 18px; padding: 0 26px; box-shadow: 0 14px 40px rgba(0,0,0,0.35); color: #fff; }
+.strip .hud { position: relative; left: auto; transform: none; bottom: auto; }
+.rec { display: flex; align-items: center; gap: 10px; flex: none; }
+.pulse { width: 22px; height: 22px; border-radius: 50%; background: #ff3b30; box-shadow: 0 0 0 7px rgba(255,59,48,0.28), 0 0 0 14px rgba(255,59,48,0.12); }
+.label { font-size: 21px; font-weight: 800; letter-spacing: .02em; }
+.time { font-size: 18px; font-variant-numeric: tabular-nums; opacity: .85; }
+.live { flex: 1; font-size: 18px; line-height: 1.35; opacity: .95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bars { display: flex; gap: 3px; align-items: center; height: 30px; }
+.bars i { width: 5px; border-radius: 3px; background: #34c759; }
+.bars i.off { background: rgba(255,255,255,0.22); }
+.engine { font-size: 13px; opacity: .6; }
+.spin { width: 22px; height: 22px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.25); border-top-color: #fff; }
+</style></head><body>
+<div class="desk">
+  <div class="menubar"><span>&#63743;</span><span class="app">Slack</span><span>ファイル</span><span>編集</span><span>表示</span>
+    <div class="right"><span class='mbicon' style='color:#ff3b30'>&#9679;</span><span>10月21日(火) 16:42</span></div></div>
+  <div class="win">
+    <div class="bar"><div class="dot3" style="background:#ff5f57"></div><div class="dot3" style="background:#febc2e"></div><div class="dot3" style="background:#28c840"></div></div>
+    <div class="side"><div>#general</div><div style="opacity:1;background:#1164a3;color:#fff"># dev-tsuzuri</div><div>#random</div></div>
+    <div class="main">
+      <div class="msg"><div class="avatar"></div><div><b>レビュー担当</b><br>PR 見ました。テストの件だけ確認お願いします。</div></div>
+      <div class="msg"><div class="avatar" style="background:#fde68a"></div><div><b>本人</b><br>了解です。午後に見ます。</div></div>
+      <div class="input"><span class="caret"></span></div>
+    </div>
+  </div>
+  <div class='hud'><div class='rec'><div class='pulse'></div><div class='label'>録音中</div></div><div class='time'>0:07</div><div class='live'>テストの件、午後に確認します</div><div class='bars'><i class='' style='height:8px'></i><i class='' style='height:11px'></i><i class='' style='height:14px'></i><i class='' style='height:17px'></i><i class='' style='height:20px'></i><i class='' style='height:23px'></i><i class='' style='height:26px'></i><i class='' style='height:23px'></i><i class='' style='height:20px'></i></div><div class='engine'>Soniox</div></div>
+  <div class="tag">イメージ 案A: 今の黒を大きく</div>
+</div>
+<div class="strip"><div class="cap">止めたあと(確定を待つ間)</div><div class='hud' style='width:560px'><div class='spin'></div><div class='label' style='font-size:19px'>確定を待っています</div><div class='live' style='opacity:.7'>テストの件、午後に確認します</div></div></div>
+</body></html>
