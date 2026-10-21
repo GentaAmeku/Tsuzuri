@@ -6,10 +6,22 @@ import TsuzuriCore
 /// 誤って認識したらしい語と表記の案を答えさせる(設計書「挙げる」)。Mac の中で終わり、外へは何も送らない
 public enum SuspectScanner {
     @Generable
+    enum SuspectKind {
+        /// 製品名・サービス名・ライブラリ名・コマンド名など、本来は英字で書く固有の名前
+        case productName
+        /// 同じ読みの別の漢字
+        case homophone
+        /// それ以外(ふつうの語の言い換え・訳・書き下し)。候補にしない
+        case other
+    }
+
+    @Generable
     struct SuspectAnswer {
-        @Guide(description: "文の中にそのまま出てくる、誤って認識したらしい語")
+        @Guide(description: "文の中にそのまま出てくる、誤って認識したらしい1語。助詞(の・で・を)は含めない")
         var heard: String
-        @Guide(description: "本来の表記の案。よく使われる表記から順に", .maximumCount(2))
+        @Guide(description: "誤りの種類")
+        var kind: SuspectKind
+        @Guide(description: "本来の表記の案。公式の大文字・小文字のとおりに書く。よく使われる表記から順に", .maximumCount(2))
         var surfaces: [String]
     }
 
@@ -24,10 +36,11 @@ public enum SuspectScanner {
     あなたは日本語の音声入力の誤りを見つける。渡す文は、日本人のソフトウェアエンジニアが話した言葉を、音声認識が文字にしたもの。
     音声認識は、英語の製品名・ライブラリ名・技術用語をカタカナやひらがな、崩れた英字で出したり、同じ読みの別の漢字を出したりする。
     文の中から誤って認識したらしい語を挙げ、本来の表記の案を出す。
-    - heard には、文の中の字をそのまま写す
-    - 製品名・ライブラリ名・技術用語は、公式の英字の表記にする。例: ドッカーコンポーズ → Docker Compose / スーパーベース → Supabase / ぷりずま → Prisma / Type オーム → TypeORM
-    - 同じ読みの別の漢字は、文脈に合う漢字にする。例: 「処理が以上終了した」の「以上」→「異常」
-    - ふつうの日本語や、文脈に合っているカタカナ語(タスク・ファイル・メモリ・ボタン・リリース・ブランチ)は挙げない
+    - heard には、文の中の字をそのまま、1語だけ写す
+    - 製品名・ライブラリ名・サービス名は、公式の英字の表記にする(kind は productName)。大文字・小文字も公式のとおりにする。例: ドッカーコンポーズ → Docker Compose / スーパーベース → Supabase / ぷりずま → Prisma / ギットラボ → GitLab / アイオーエス → iOS / Kubernetis → Kubernetes
+    - 同じ読みの別の漢字は、文脈に合う漢字にする(kind は homophone)。例: 「処理が以上終了した」の「以上」→「異常」
+    - 日本語の文章でふつうにカタカナや漢字で書く語は、誤りではない。英語に訳さない(ファイル → File、ユーザー → User、保存 → save は誤った直し)
+    - 略語を書き下さない(API → Application Programming Interface は誤った直し)。語を足したり削ったりしない
     - 誤りが無ければ空にする
     印の付いた語は、怪しいかもしれない語の手がかり。印の無い語を挙げてもよく、印の付いた語でも誤りでなければ挙げない。
     """
@@ -45,6 +58,8 @@ public enum SuspectScanner {
             generating: ScanAnswer.self,
             options: GenerationOptions(sampling: .greedy)
         )
-        return response.content.suspects.map { Suspect(heard: $0.heard, surfaces: $0.surfaces) }
+        return response.content.suspects
+            .filter { $0.kind != .other }
+            .map { Suspect(heard: $0.heard, surfaces: $0.surfaces) }
     }
 }

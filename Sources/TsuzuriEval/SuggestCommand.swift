@@ -55,9 +55,9 @@ struct Suggest: AsyncParsableCommand {
                     details.append("- **\(item.id)** 洗い出しに失敗: \(error)\n")
                     continue
                 }
+                let candidates = CandidateFilter.candidates(from: suspects, in: shaped, dictionary: [], marked: marked)
                 let elapsed = clock.duration(to: .now)
                 seconds.append(Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18)
-                let candidates = CandidateFilter.candidates(from: suspects, in: shaped, dictionary: [])
                 let result = SuggestionScore.score(reference: sentence.text, hypothesis: shaped, terms: dictionary.surfaces, candidates: candidates)
                 tally.add(result)
                 let line = Self.describe(id: item.id, reference: sentence.text, shaped: shaped, marked: marked, candidates: candidates, result: result)

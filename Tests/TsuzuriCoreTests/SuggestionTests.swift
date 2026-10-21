@@ -95,6 +95,36 @@ struct CandidateFilterTests {
     }
 }
 
+@Suite("除く: 見込みの無い直し")
+struct PlausibilityTests {
+    @Test("語を足しただけ・削っただけの案は捨て、大文字小文字だけの直しは残す")
+    func containment() {
+        #expect(!CandidateFilter.isPlausible(heard: "Slack", surface: "Slack client"))
+        #expect(!CandidateFilter.isPlausible(heard: "評価", surface: "評価率"))
+        #expect(CandidateFilter.isPlausible(heard: "MacOS", surface: "macOS"))
+    }
+
+    @Test("漢字の語を英字に訳した案と、略語を書き下した案は捨てる")
+    func translations() {
+        #expect(!CandidateFilter.isPlausible(heard: "以降", surface: "after"))
+        #expect(!CandidateFilter.isPlausible(heard: "API", surface: "Application Programming Interface"))
+        #expect(CandidateFilter.isPlausible(heard: "ぞっと", surface: "Zod"))
+    }
+
+    @Test("漢字・かなどうしは、読みが近い直しだけ残す")
+    func homophones() {
+        #expect(CandidateFilter.isPlausible(heard: "性的", surface: "静的"))
+        #expect(CandidateFilter.isPlausible(heard: "規定", surface: "既定"))
+        #expect(!CandidateFilter.isPlausible(heard: "明日", surface: "明後日"))
+    }
+
+    @Test("助詞まで含めて挙げた語は、印の付いた語に切り詰める")
+    func trimsToMarked() {
+        #expect(CandidateFilter.trimToMarked("ストーリーブックのストーリー", marked: ["ストーリーブック", "ストーリー"]) == "ストーリーブック")
+        #expect(CandidateFilter.trimToMarked("性的", marked: []) == "性的")
+    }
+}
+
 @Suite("入れ方の初期値")
 struct InsertionModeTests {
     @Test("カタカナや英字の語で、表記に英字を含むときは置き換える")
