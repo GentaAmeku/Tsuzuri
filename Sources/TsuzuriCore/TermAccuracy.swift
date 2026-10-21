@@ -10,22 +10,26 @@ public enum TermAccuracy {
     /// 語が何回出たか。長い語から先に当て、重なった分は数えない
     /// (「Claude Code」の中の「Claude」は、Claude としては数えない)
     public static func occurrences(of terms: [String], in text: String) -> [String: Int] {
-        let characters = normalize(text)
+        positions(of: terms, in: normalize(text)).reduce(into: [:]) { $0[$1.term, default: 0] += 1 }
+    }
+
+    /// 語が出た位置(そろえた文字の列での範囲)。数え方は `occurrences` と同じ
+    public static func positions(of terms: [String], in characters: [Character]) -> [(term: String, range: Range<Int>)] {
         let candidates = terms
             .map { (term: $0, key: normalize($0)) }
             .filter { !$0.key.isEmpty }
             .sorted { $0.key.count > $1.key.count }
-        var counts: [String: Int] = [:]
+        var found: [(term: String, range: Range<Int>)] = []
         var index = 0
         while index < characters.count {
             if let match = candidates.first(where: { starts(characters, at: index, with: $0.key) }) {
-                counts[match.term, default: 0] += 1
+                found.append((match.term, index..<(index + match.key.count)))
                 index += match.key.count
             } else {
                 index += 1
             }
         }
-        return counts
+        return found
     }
 
     public static func measure(reference: String, hypothesis: String, terms: [String]) -> TermCount {
