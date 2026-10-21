@@ -26,7 +26,7 @@
   .lead { padding: 10px 18px; font-size: 12.5px; color: #555; border-bottom: 1px solid #eee; }
   .list { padding: 6px 14px; overflow: hidden; }
   .row {
-    display: grid; grid-template-columns: 22px 1.55fr 1.05fr 52px 44px 128px; gap: 10px; align-items: center;
+    display: grid; grid-template-columns: 22px 1.9fr 1.05fr 52px 128px; gap: 10px; align-items: center;
     padding: 11px 6px; border-bottom: 1px solid #f0f0f2;
   }
   .row.headrow { padding: 8px; font-size: 11.5px; color: #86868b; font-weight: 600; }
@@ -50,6 +50,8 @@
   .foot { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-top: 1px solid #eee; background: #fafafb; font-size: 12.5px; color: #555; }
   .foot .sp { margin-left: auto; }
   .tag { position: absolute; left: 24px; bottom: 16px; font-size: 12px; color: #6e6e73; background: rgba(255,255,255,0.8); padding: 4px 10px; border-radius: 6px; }
+  .edit { display: inline-block; min-width: 120px; padding: 3px 8px; border: 1.5px solid #0a64d8; border-radius: 6px; font-weight: 700; background: #fff; }
+  .alt { margin-left: 6px; font-size: 11.5px; color: #0a4fb0; border: 1px dashed #9db8e6; border-radius: 6px; padding: 2px 6px; }
 </style>
 </head>
 <body>
@@ -57,35 +59,35 @@
     <div class="bar">
       <div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div>
       <div class="title">辞書の候補</div>
-      <div class="seg"><span class="on">確認待ち 3</span><span>自動で入れたもの 2</span><span>捨てたもの 5</span></div>
+      <div class="seg"><span class="on">候補 3</span><span>捨てたもの 5</span></div>
     </div>
-    <div class="lead">手で直した箇所から見つけた候補です。入れると次の音声入力から効きます。判定はこの Mac の中で行いました。</div>
+    <div class="lead">音声入力の文から、誤って認識したらしい語を挙げました。表記の案は直してから入れられます。調べたのはこの Mac の中です。</div>
     <div class="list">
-      <div class="row headrow"><span></span><span>認識 → 直した後(直した場所)</span><span>種類</span><span>見た回数</span><span>確かさ</span><span></span></div>
+      <div class="row headrow"><span></span><span>認識した語 → 表記の案(出た文)</span><span>入れ方</span><span>出た回数</span><span></span></div>
       <div class="row">
         <div class="cb on">✓</div>
-        <div><div class="pair"><span class="from">クロードコード</span><span class="arrow">→</span><span class="to">Claude Code</span></div><div class="ctx">…その後 <mark>クロードコード</mark> でタスクを整理…(Slack)</div></div>
-        <div class="kind"><span class="k rep">表記の直し</span><span class="sub">次から置き換える</span></div>
-        <div class="num">1回</div><div class="num">86</div>
+        <div><div class="pair"><span class="from">クロードコード</span><span class="arrow">→</span><span class="edit">Claude Code</span><span class="alt">Cloud Code</span></div><div class="ctx">…その後<mark>クロードコード</mark>でタスクを整理…(Slack)</div></div>
+        <div class="kind"><span class="k rep">置き換える</span><span class="sub">次から Claude Code に直す</span></div>
+        <div class="num">2回</div>
         <div class="btns"><span class="btn">捨てる</span><span class="btn pri">入れる</span></div>
       </div>
       <div class="row">
         <div class="cb on">✓</div>
-        <div><div class="pair"><span class="from">ネクストジェイエス</span><span class="arrow">→</span><span class="to">Next.js</span></div><div class="ctx">…<mark>ネクストジェイエス</mark> の設定を…(Claude)</div></div>
-        <div class="kind"><span class="k rep">表記の直し</span><span class="sub">次から置き換える</span></div>
-        <div class="num">1回</div><div class="num">84</div>
+        <div><div class="pair"><span class="from">ぞっと</span><span class="arrow">→</span><span class="edit">Zod</span></div><div class="ctx">…<mark>ぞっと</mark>のスキーマから型を作る…(Claude)</div></div>
+        <div class="kind"><span class="k hint">ヒントだけ</span><span class="sub">認識に渡す(置き換えない)</span></div>
+        <div class="num">1回</div>
         <div class="btns"><span class="btn">捨てる</span><span class="btn pri">入れる</span></div>
       </div>
       <div class="row">
         <div class="cb"></div>
-        <div><div class="pair"><span class="from">性的</span><span class="arrow">→</span><span class="to">静的</span></div><div class="ctx">…<mark>性的</mark> サイトの構成を見直す…(Notion)</div></div>
-        <div class="kind"><span class="k hint">同音異義語の直し</span><span class="sub">ヒントだけ(置き換えない)</span></div>
-        <div class="num">1回</div><div class="num">78</div>
+        <div><div class="pair"><span class="from">性的</span><span class="arrow">→</span><span class="edit">静的</span></div><div class="ctx">…<mark>性的</mark>解析で拾えるはず…(Slack)</div></div>
+        <div class="kind"><span class="k hint">ヒントだけ</span><span class="sub">認識に渡す(置き換えない)</span></div>
+        <div class="num">1回</div>
         <div class="btns"><span class="btn">捨てる</span><span class="btn pri">入れる</span></div>
       </div>
     </div>
     <div class="foot">
-      <span>今日 自動で入れたもの: 2件(通知の「取り消す」で戻せる)</span>
+      <span>入れた語は「辞書を編集…」でいつでも直せます</span>
       <span class="sp"></span>
       <span class="btn">すべて捨てる</span><span class="btn pri">選んだ2件を入れる</span>
     </div>
