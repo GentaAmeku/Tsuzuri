@@ -41,10 +41,8 @@ final class CandidateStore {
 
     private func runScan(_ text: String, app: String?) async {
         let surfaces = dictionary.dictionary.entries.map(\.surface)
-        let marked = SuspectMarker.mark(text, dictionary: surfaces)
         do {
-            let suspects = try await SuspectScanner.scan(text, marked: marked)
-            let candidates = CandidateFilter.candidates(from: suspects, in: text, dictionary: surfaces, marked: marked, discarded: file.settled)
+            let candidates = try await SuspectScanner.candidates(for: text, dictionary: surfaces, settled: file.settled).candidates
             guard !candidates.isEmpty else { return }
             update(CandidateBook.merging(candidates, app: app, at: Date(), into: file))
         } catch {

@@ -45,17 +45,16 @@ struct Suggest: AsyncParsableCommand {
             for item in run.items where only.isEmpty || only.contains(item.id) {
                 guard let hypothesis = item.hypothesis, let sentence = sentences[item.id] else { continue }
                 let shaped = shaper.shape(hypothesis)
-                let marked = SuspectMarker.mark(shaped, dictionary: [])
                 let clock = ContinuousClock.now
-                let suspects: [Suspect]
+                let outcome: SuspectScanner.Outcome
                 do {
-                    suspects = try await SuspectScanner.scan(shaped, marked: marked)
+                    outcome = try await SuspectScanner.candidates(for: shaped, dictionary: [])
                 } catch {
                     failures += 1
                     details.append("- **\(item.id)** 洗い出しに失敗: \(error)\n")
                     continue
                 }
-                let candidates = CandidateFilter.candidates(from: suspects, in: shaped, dictionary: [], marked: marked)
+                let (marked, candidates) = (outcome.marked, outcome.candidates)
                 let elapsed = clock.duration(to: .now)
                 seconds.append(Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18)
                 let result = SuggestionScore.score(reference: sentence.text, hypothesis: shaped, terms: dictionary.surfaces, candidates: candidates)

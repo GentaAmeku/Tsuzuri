@@ -50,6 +50,22 @@ public enum SuspectScanner {
         SystemLanguageModel.default.isAvailable
     }
 
+    /// 洗い出しの結果。印は確かめ用(測定の表示)に返す
+    public struct Outcome: Sendable {
+        public let marked: [String]
+        public let candidates: [SuggestionCandidate]
+    }
+
+    /// 拾う → 挙げる → 除く を通して、辞書の候補を出す。アプリと測定(tsuzuri-eval suggest)で同じ流れを使う
+    public static func candidates(for text: String, dictionary surfaces: [String], settled: Set<DiscardedPair> = []) async throws -> Outcome {
+        let marked = SuspectMarker.mark(text, dictionary: surfaces)
+        let suspects = try await scan(text, marked: marked)
+        return Outcome(
+            marked: marked,
+            candidates: CandidateFilter.candidates(from: suspects, in: text, dictionary: surfaces, marked: marked, discarded: settled)
+        )
+    }
+
     public static func scan(_ text: String, marked: [String]) async throws -> [Suspect] {
         let session = LanguageModelSession(instructions: instructions)
         let markedLine = marked.isEmpty ? "(なし)" : marked.joined(separator: "、")

@@ -1,9 +1,9 @@
 # Tsuzuri
 
-日本語の音声入力を、どのアプリにも速く正確に打ち込むための、自分用の Mac アプリ。クラウドの Soniox で文字にし、辞書(語のヒントと置き換え)で表記をそろえ、手で直した語を Mac の中の LLM が辞書に足していく。
+日本語の音声入力を、どのアプリにも速く正確に打ち込むための、自分用の Mac アプリ。クラウドの Soniox で文字にし、辞書(語のヒントと置き換え)で表記をそろえる。貼った文から誤って認識したらしい語を Mac の中の LLM(Apple Foundation Models)が挙げ、本人が選んで辞書に足していく。
 
 - 設計書: ai-handout-studio の `doc_20261020_002`。文字だけなら `ai-handout-studio document export doc_20261020_002 --text --out <保存先>` で読める
-- いまの段階: 段階2(辞書と予備)まで完了(2026-10-21)。次は **段階3(辞書の自動追加)**。段階0の評価で、主の認識は Soniox(ヒントありで文字誤り率5.2%)、Mac 内の予備は WhisperKit に決めた(設計書の「段階0の結果」)
+- いまの段階: 段階2(辞書と予備)まで完了(2026-10-21)。**段階3(辞書の候補)** は作り終え、ふだん使いの1週間で完了を判断する。段階0の評価で、主の認識は Soniox(ヒントありで文字誤り率5.2%)、Mac 内の予備は WhisperKit に決めた(設計書の「段階0の結果」)
 
 ## 段階0: 評価の手順
 
@@ -70,13 +70,30 @@ scripts/build-app-bundle.sh --install
 
 履歴(直近100件)と7日分の音声は `~/Library/Application Support/Tsuzuri/` に置く。段階1では整える規則が無いので、Soniox の出力をそのまま貼る。Soniox に2秒でつながらない・確定が3秒を超えたときは、画面で知らせて録音を履歴に残す。
 
+## 段階2・3: 辞書と候補
+
+| メニュー | すること |
+| --- | --- |
+| Mac 内だけで認識する | Soniox を使わず WhisperKit で認識する。Soniox が失敗したときは、自動で5分間 Mac 内に切り替わる |
+| 直前の録音を認識し直す | 残した音声を Soniox か Mac 内でもう一度文字にして貼る |
+| 辞書の候補(N件)… | 貼った文から挙げた候補を、入れるか捨てるか選ぶ。表記の案と入れ方(置き換える・ヒントだけ)は窓で直せる。捨てた組・入れた組は二度出さない |
+| 辞書を編集… | 辞書を表で直す。「読みを提案」で、置き換え元にするカタカナの読みの候補を出す |
+
+辞書は `~/Library/Application Support/Tsuzuri/dictionary.json`、候補は同じフォルダの `candidates.json`。Apple Intelligence が無効なときは、候補を出さない。
+
+候補の洗い出しの質は、段階0の認識結果で測る(Apple Foundation Models を使う。録音は流し直さない)。`eval/results/suggest.md` に文ごとの候補を書く
+
+```bash
+swift run tsuzuri-eval suggest
+```
+
 ## フォルダ
 
 | 場所 | 中身 |
 | --- | --- |
-| `Sources/TsuzuriCore` | 副作用の無い処理(文字誤り率・用語正答率・集計・右⌘の状態・履歴・整える規則・置き換え・ヒントの選び方)。テストの中心 |
-| `Sources/TsuzuriEngines` | Soniox(話しながら送る接続)・Apple の認識・マイク・キーチェーン・音声ファイル |
-| `Sources/TsuzuriApp` | メニューバーのアプリ(右⌘の検知・録音中の表示・貼り付け・設定・履歴) |
+| `Sources/TsuzuriCore` | 副作用の無い処理(文字誤り率・用語正答率・集計・右⌘の状態・履歴・整える規則・置き換え・ヒントの選び方・候補の拾い方と除き方・候補の貯め方)。テストの中心 |
+| `Sources/TsuzuriEngines` | Soniox(話しながら送る接続)・WhisperKit・Apple の認識・Apple Foundation Models(読みの提案・候補の洗い出し)・マイク・キーチェーン・音声ファイル |
+| `Sources/TsuzuriApp` | メニューバーのアプリ(右⌘の検知・録音中の表示・貼り付け・設定・履歴・辞書の窓・候補の窓) |
 | `Sources/TsuzuriEvalKit` | 評価セットと結果の読み書き |
 | `Sources/TsuzuriEval` | 評価用の CLI(`tsuzuri-eval`) |
 | `Tools/Qwen3Eval` | Qwen3-ASR の評価(speech-swift を使う別のパッケージ) |
