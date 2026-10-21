@@ -70,7 +70,7 @@ struct Suggest: AsyncParsableCommand {
         let total = rows.reduce(SuggestionTally()) { $0 + $1.tally }
         let table = Self.table(rows + [("合計", total, rows.flatMap(\.seconds), rows.reduce(0) { $0 + $1.failures })])
         let verdict = total.meetsTargets ? "目標に届いた" : "目標に届いていない"
-        let report = "# 辞書の候補の洗い出し\n\n目標: ① 8割以上・② 6割以上・③ 10文あたり3件以下(\(verdict))\n\n\(table)\n\n" + details.joined(separator: "\n")
+        let report = "# 辞書の候補の洗い出し\n\n目標: ① 8割以上・③ 外れの異なる語が\(SuggestionTally.maximumFalsePositiveWords)語以下(160文で)。② は参考(\(verdict))\n\n\(table)\n\n" + details.joined(separator: "\n")
         try FileManager.default.createDirectory(at: paths.results, withIntermediateDirectories: true)
         let url = paths.results.appending(path: "suggest.md")
         try report.write(to: url, atomically: true, encoding: .utf8)
@@ -80,15 +80,15 @@ struct Suggest: AsyncParsableCommand {
 
     static func table(_ rows: [(name: String, tally: SuggestionTally, seconds: [Double], failures: Int)]) -> String {
         var lines = [
-            "| 結果 | 文 | 誤った辞書の語 | ① 挙げた割合 | ② 表記の当たり | ③ 外れ(10文あたり) | 辞書の外の誤り | 時間(平均/最長) | 失敗 |",
-            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+            "| 結果 | 文 | 誤った辞書の語 | ① 挙げた割合 | ② 表記の当たり(参考) | ③ 外れの異なる語 | 外れ(10文あたり) | 辞書の外の誤り | 時間(平均/最長) | 失敗 |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
         for row in rows {
             let t = row.tally
             let average = row.seconds.isEmpty ? 0 : row.seconds.reduce(0, +) / Double(row.seconds.count)
             lines.append(
                 "| \(row.name) | \(t.sentences) | \(t.termErrors) | \(percent(t.coveredRate))(\(t.covered)/\(t.termErrors)) "
-                    + "| \(percent(t.surfaceRate))(\(t.surfaceHits)/\(t.termCandidates)) | \(String(format: "%.1f", t.falsePositivesPerTen))(\(t.falsePositives)件) "
+                    + "| \(percent(t.surfaceRate))(\(t.surfaceHits)/\(t.termCandidates)) | \(t.falsePositiveWords.count)語 | \(String(format: "%.1f", t.falsePositivesPerTen))(\(t.falsePositives)件) "
                     + "| \(t.otherErrors) | \(String(format: "%.1f", average))秒/\(String(format: "%.1f", row.seconds.max() ?? 0))秒 | \(row.failures) |"
             )
         }

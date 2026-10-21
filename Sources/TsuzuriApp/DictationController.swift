@@ -22,6 +22,8 @@ final class DictationController {
     let hud = RecordingHUD()
     let store = AppStore()
     let dictionary: DictionaryStore
+    /// 辞書の候補(段階3)
+    let candidates: CandidateStore
     let local = LocalRecognizer()
     let permissions = Permissions()
     /// Soniox が失敗したあと、この時刻までは Mac 内で認識する
@@ -38,9 +40,11 @@ final class DictationController {
     @ObservationIgnored private var apiKey: String?
     @ObservationIgnored private lazy var settingsWindow = SettingsWindow(controller: self)
     @ObservationIgnored private lazy var dictionaryWindow = DictionaryWindow(store: dictionary)
+    @ObservationIgnored private lazy var candidateWindow = CandidateWindow(store: candidates)
 
     init() {
         dictionary = DictionaryStore(directory: store.directory)
+        candidates = CandidateStore(directory: store.directory, dictionary: dictionary)
     }
 
     var isReady: Bool { isListening && (store.localOnly || hasAPIKey == true) && permissions.microphone == .authorized }
@@ -250,7 +254,7 @@ final class DictationController {
         }
     }
 
-    /// 整えて貼り、履歴と使われた回数を残す
+    /// 整えて貼り、履歴と使われた回数を残す。貼ったあとに裏で辞書の候補を洗い出す
     private func deliver(_ text: String, engine: String, audio: String?, startedAt: Date, notice: String? = nil) async {
         guard !text.isEmpty else {
             hud.notice("聞き取れる言葉がありませんでした")
@@ -266,6 +270,7 @@ final class DictationController {
         case .clipboardOnly:
             hud.notice("入力欄が無いので、クリップボードに残しました")
         }
+        candidates.scan(shaped, app: app)
     }
 
     // MARK: メニューと設定
@@ -325,6 +330,10 @@ final class DictationController {
 
     func showDictionary() {
         dictionaryWindow.show()
+    }
+
+    func showCandidates() {
+        candidateWindow.show()
     }
 
     func showSettings() {

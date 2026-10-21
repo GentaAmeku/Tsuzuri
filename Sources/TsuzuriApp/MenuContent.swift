@@ -53,6 +53,10 @@ struct MenuContent: View {
             Button("履歴のフォルダを開く") { controller.store.revealInFinder() }
         }
         Divider()
+        if controller.candidates.isUnavailable {
+            Text("Apple Intelligence が無効なので、辞書の候補を出していません")
+        }
+        Button("辞書の候補(\(controller.candidates.file.items.count)件)…") { controller.showCandidates() }
         Button("辞書を編集…") { controller.showDictionary() }
         Button("設定…") { controller.showSettings() }
             .keyboardShortcut(",")

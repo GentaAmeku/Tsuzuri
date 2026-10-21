@@ -195,14 +195,15 @@ struct SuggestionScoreTests {
         #expect(result.missed == ["静的"])
     }
 
-    @Test("文ごとの件数を足して、3つの数を出す")
+    @Test("文ごとの件数を足して、3つの数と外れの異なる語を出す")
     func tally() {
         var tally = SuggestionTally()
-        tally.add(SuggestionScore.SentenceResult(termErrors: ["Claude Code", "Vitest"], missed: ["Vitest"], verdicts: [.term(["Claude Code"], surfaceHit: true), .falsePositive]))
-        tally.add(SuggestionScore.SentenceResult(termErrors: [], missed: [], verdicts: []))
+        tally.add(SuggestionScore.SentenceResult(termErrors: ["Claude Code", "Vitest"], missed: ["Vitest"], verdicts: [.term(["Claude Code"], surfaceHit: true), .falsePositive], falsePositiveWords: ["エラー"]))
+        tally.add(SuggestionScore.SentenceResult(termErrors: [], missed: [], verdicts: [.falsePositive], falsePositiveWords: ["エラー"]))
         #expect(tally.coveredRate == 0.5)
         #expect(tally.surfaceRate == 1)
-        #expect(tally.falsePositivesPerTen == 5)
+        #expect(tally.falsePositivesPerTen == 10)
+        #expect(tally.falsePositiveWords == ["エラー"])
         #expect(!tally.meetsTargets)
     }
 }

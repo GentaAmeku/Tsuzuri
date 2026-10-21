@@ -17,6 +17,8 @@ public enum SuggestionScore {
         /// 候補に上がらなかった、誤って認識された辞書の語
         public let missed: [String]
         public let verdicts: [Verdict]
+        /// 外れの候補の語(空白と中黒を除いた形)
+        public let falsePositiveWords: [String]
     }
 
     public static func score(reference: String, hypothesis: String, terms: [String], candidates: [SuggestionCandidate]) -> SentenceResult {
@@ -46,7 +48,8 @@ public enum SuggestionScore {
         return SentenceResult(
             termErrors: errors.map(\.term),
             missed: errors.indices.filter { !covered.contains($0) }.map { errors[$0].term },
-            verdicts: verdicts
+            verdicts: verdicts,
+            falsePositiveWords: zip(candidates, verdicts).filter { $0.1 == .falsePositive }.map { CandidateFilter.compact($0.0.heard) }
         )
     }
 
@@ -73,6 +76,8 @@ public struct SuggestionTally: Sendable, Equatable {
     public var falsePositives = 0
     /// 辞書に無い語の誤りを挙げた数(外れに数えない)
     public var otherErrors = 0
+    /// 外れの候補の、異なる語。捨てた組は二度出ないので、本人の手間はこの数で決まる
+    public var falsePositiveWords: Set<String> = []
 
     public init() {}
 
@@ -80,6 +85,7 @@ public struct SuggestionTally: Sendable, Equatable {
         sentences += 1
         candidates += result.verdicts.count
         termErrors += result.termErrors.count
+        falsePositiveWords.formUnion(result.falsePositiveWords)
         covered += result.termErrors.count - result.missed.count
         for verdict in result.verdicts {
             switch verdict {
@@ -101,9 +107,12 @@ public struct SuggestionTally: Sendable, Equatable {
     /// ③ 外れの候補(10文あたり)
     public var falsePositivesPerTen: Double { sentences == 0 ? 0 : Double(falsePositives) * 10 / Double(sentences) }
 
-    /// 設計書の目標(① 8割以上・② 6割以上・③ 10文あたり3件以下)に届いたか
+    /// 外れの異なる語の上限(段階0の160文で)。2026-10-21 に本人が条件を見直したときの初期値
+    public static let maximumFalsePositiveWords = 40
+
+    /// 設計書の目標(① 8割以上・③ 外れの異なる語が40語以下。② は参考)に届いたか
     public var meetsTargets: Bool {
-        coveredRate >= 0.8 && surfaceRate >= 0.6 && falsePositivesPerTen <= 3
+        coveredRate >= 0.8 && falsePositiveWords.count <= Self.maximumFalsePositiveWords
     }
 
     public static func + (lhs: SuggestionTally, rhs: SuggestionTally) -> SuggestionTally {
@@ -116,6 +125,7 @@ public struct SuggestionTally: Sendable, Equatable {
         sum.surfaceHits += rhs.surfaceHits
         sum.falsePositives += rhs.falsePositives
         sum.otherErrors += rhs.otherErrors
+        sum.falsePositiveWords.formUnion(rhs.falsePositiveWords)
         return sum
     }
 }
