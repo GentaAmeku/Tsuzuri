@@ -114,18 +114,26 @@ struct SettingsView: View {
     @State var tab: Tab = .general
 
     var body: some View {
-        TabView(selection: $tab) {
-            generalTab
-                .tabItem { Label("一般", systemImage: "gearshape") }
-                .tag(Tab.general)
-            keysTab
-                .tabItem { Label("キー", systemImage: "keyboard") }
-                .tag(Tab.keys)
-            sonioxTab
-                .tabItem { Label("Soniox と辞書", systemImage: "character.book.closed") }
-                .tag(Tab.sonioxAndDictionary)
+        // 上端に余白をとった切り替えと、背景を透かしたフォームで、窓の背景を1色にそろえる
+        VStack(spacing: 0) {
+            Picker("", selection: $tab) {
+                Text("一般").tag(Tab.general)
+                Text("キー").tag(Tab.keys)
+                Text("Soniox と辞書").tag(Tab.sonioxAndDictionary)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .padding(.top, 18)
+            .padding(.bottom, 2)
+            switch tab {
+            case .general: generalTab
+            case .keys: keysTab
+            case .sonioxAndDictionary: sonioxTab
+            }
         }
         .frame(width: 560)
+        .background(Color(nsColor: .windowBackgroundColor))
         .task {
             // 権限はシステム設定で変わるので、窓を開いている間は見直す
             while !Task.isCancelled {
@@ -166,13 +174,14 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .fixedSize(horizontal: false, vertical: true)
     }
 
     /// 録音キー・操作の方式・ショートカット・使い方
     private var keysTab: some View {
         Form {
-            Section {
+            Section("録音キー") {
                 Picker("録音キー", selection: hotkey(\.key)) {
                     ForEach(HotkeySettings.Key.allCases, id: \.self) { Text($0.label).tag($0) }
                 }
@@ -202,6 +211,7 @@ struct SettingsView: View {
             .font(.callout)
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -242,6 +252,7 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .fixedSize(horizontal: false, vertical: true)
     }
 
