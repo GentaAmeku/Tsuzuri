@@ -24,6 +24,17 @@ public struct TextShaper: Sendable {
         }
         return shaped
     }
+
+    /// 話している途中の文字を、貼る文字と同じ規則で整える。確定した文字とまだ変わりうる文字をつないで整え、
+    /// 整えたあとの文字のうち、確定した文字にあたる頭の字数も返す(表示で色を分けるため)。
+    /// 確定した文字だけを整えたものと頭が同じところまでを、確定した字とみなす(置き換えが境目をまたぐときは、またいだ語から後ろを薄く出す)
+    public func shapePartial(final: String, tentative: String) -> (text: String, finalLength: Int) {
+        let all = shape(final + tentative)
+        guard !tentative.isEmpty else { return (all, all.count) }
+        let shapedFinal = Array(shape(final))
+        let common = zip(Array(all), shapedFinal).prefix { $0 == $1 }.count
+        return (all, common)
+    }
 }
 
 /// 正規化: 全角の英数字を半角に、全角の「,.」を「、。」に、日本語の字の間の空白を消す

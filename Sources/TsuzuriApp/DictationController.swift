@@ -198,16 +198,17 @@ final class DictationController {
 
     private func connect() {
         guard let run else { return }
-        // Mac 内で認識するときは、止めてから録音をまとめて渡す(話している途中の文字は出ない)
+        // Mac 内で認識するときは、止めてから録音をまとめて渡す(途中の文字は startLivePreview で出す)
         guard !runIsLocal, let apiKey else { return }
         let hud = hud
+        let shaper = dictionary.shaper(waObunSpacing: store.waObunSpacing)
         let terms = dictionary.hintTerms()
         runHintCharacters = terms.reduce(0) { $0 + $1.count }
         run.connect(
             apiKey: apiKey,
             terms: terms,
             onUpdate: { assembler in
-                Task { @MainActor in hud.update(assembler) }
+                Task { @MainActor in Self.showShaped(on: hud, shaper: shaper, final: assembler.finalText, tentative: assembler.tentativeText) }
             },
             onFailure: { message in
                 hud.warning = message
@@ -219,12 +220,13 @@ final class DictationController {
     /// 使えなければ(日本語のモデルが無いなど)何も出さず、録音と貼る文字には響かない
     private func startLivePreview(for run: DictationRun) {
         let hud = hud
+        let shaper = dictionary.shaper(waObunSpacing: store.waObunSpacing)
         let terms = Array(dictionary.hintTerms().prefix(WhisperKitEngine.hintLimit))
         livePreview = Task {
             do {
                 let live = try await AppleSpeechLive.start(terms: terms)
                 live.onUpdate = { final, volatile in
-                    Task { @MainActor in hud.showPartial(final: final, tentative: volatile) }
+                    Task { @MainActor in Self.showShaped(on: hud, shaper: shaper, final: final, tentative: volatile) }
                 }
                 run.tap.attach { samples in live.feed(samples) }
                 return live
@@ -234,6 +236,12 @@ final class DictationController {
                 return nil
             }
         }
+    }
+
+    /// 話している途中の文字を、貼る文字と同じ規則(つなぎ言葉・辞書の置き換え・和欧間スペース)で整えて表示に出す
+    private static func showShaped(on hud: RecordingHUD, shaper: TextShaper, final: String, tentative: String) {
+        let shaped = shaper.shapePartial(final: final, tentative: tentative)
+        hud.showPartial(final: String(shaped.text.prefix(shaped.finalLength)), tentative: String(shaped.text.dropFirst(shaped.finalLength)))
     }
 
     /// 途中の文字の認識を捨てる(止めた・取り消した)。表示した文字は確定待ちの間そのまま残る

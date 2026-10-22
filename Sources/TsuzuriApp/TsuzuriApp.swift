@@ -44,7 +44,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     print("語のヒント: \(terms.count)語")
                     let live = try await AppleSpeechLive.start(terms: terms)
                     let started = Date()
-                    live.onUpdate = { final, volatile in print(String(format: "%.1f秒: %@", Date().timeIntervalSince(started), final + volatile)) }
+                    // 表示に出すのと同じく、辞書などで整えた文字を書く(| の左が確定した字)
+                    let shaper = controller.dictionary.shaper(waObunSpacing: controller.store.waObunSpacing)
+                    live.onUpdate = { final, volatile in
+                        let shaped = shaper.shapePartial(final: final, tentative: volatile)
+                        let shown = String(shaped.text.prefix(shaped.finalLength)) + "|" + String(shaped.text.dropFirst(shaped.finalLength))
+                        print(String(format: "%.1f秒: %@", Date().timeIntervalSince(started), shown))
+                    }
                     var fed = 0
                     while fed < samples.count {
                         let next = min(samples.count, fed + 1_600)

@@ -152,6 +152,32 @@ struct TextShaperTests {
         let shaper = TextShaper(dictionary: dictionary, waObunSpacing: false)
         #expect(shaper.shape("クロードコードで見て") == "Claude Codeで見て")
     }
+
+    @Test("話している途中の文字も同じ規則で整え、確定した文字にあたる頭の字数を返す")
+    func partial() {
+        let dictionary = DictionaryFile(version: 1, entries: [entry("Claude Code", from: ["クロードコード"])], fillers: ["えーと"])
+        let shaper = TextShaper(dictionary: dictionary)
+        let shaped = shaper.shapePartial(final: "えーと、クロードコードで", tentative: "PRを見")
+        #expect(shaped.text == "Claude Code で PR を見")
+        #expect(String(shaped.text.prefix(shaped.finalLength)) == "Claude Code で")
+    }
+
+    @Test("置き換える語が確定した文字とまだ変わりうる文字をまたぐときは、その語から後ろを確定していない字とみなす")
+    func partialAcrossBoundary() {
+        let dictionary = DictionaryFile(version: 1, entries: [entry("Claude Code", from: ["クロードコード"])], fillers: [])
+        let shaper = TextShaper(dictionary: dictionary)
+        let shaped = shaper.shapePartial(final: "これはクロード", tentative: "コードで")
+        #expect(shaped.text == "これは Claude Code で")
+        #expect(String(shaped.text.prefix(shaped.finalLength)) == "これは")
+    }
+
+    @Test("まだ変わりうる文字が無ければ、全体を確定した字とみなす")
+    func partialAllFinal() {
+        let shaper = TextShaper(dictionary: DictionaryFile(version: 1, entries: [], fillers: []))
+        let shaped = shaper.shapePartial(final: "テストです。", tentative: "")
+        #expect(shaped.text == "テストです。")
+        #expect(shaped.finalLength == 6)
+    }
 }
 
 @Suite("ヒントの選び方")
