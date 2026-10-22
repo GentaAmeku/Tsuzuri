@@ -19,8 +19,7 @@ struct MenuBarIcon: View {
         }
     }
 
-    /// 待機中のアイコン。アプリのアイコン(和綴じの冊子)と同じ題材を、メニューバー向けの単色の線で描く。
-    /// 上と下の綴じ糸が背を横切り、真ん中の綴じ糸はそのまま声の波形になって紙へ続く。
+    /// 待機中のアイコン。一目で声の入力と分かるよう、マイクを単色の線で描く(質問票 sheet_20261022_006 で本人が選んだ)。
     /// テンプレートの絵にして、メニューバーの明るさに合わせた色で出させる
     static let glyph: NSImage = {
         let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { _ in
@@ -31,24 +30,23 @@ struct MenuBarIcon: View {
                 path.lineJoinStyle = .round
                 path.stroke()
             }
-            // 冊子の紙
-            stroke(NSBezierPath(roundedRect: NSRect(x: 5.4, y: 2.3, width: 10.4, height: 13.4), xRadius: 2, yRadius: 2), 1.35)
-            // 上と下の綴じ糸
-            for y: CGFloat in [5.0, 13.0] {
-                let stitch = NSBezierPath()
-                stitch.move(to: NSPoint(x: 2.8, y: y))
-                stitch.line(to: NSPoint(x: 7.4, y: y))
-                stroke(stitch, 1.3)
+            func line(_ from: NSPoint, _ to: NSPoint, _ width: CGFloat) {
+                let path = NSBezierPath()
+                path.move(to: from)
+                path.line(to: to)
+                stroke(path, width)
             }
-            // 真ん中の綴じ糸から続く声の波形
-            let points = [
-                NSPoint(x: 2.8, y: 9), NSPoint(x: 8.0, y: 9), NSPoint(x: 9.3, y: 5.4), NSPoint(x: 10.8, y: 12.6),
-                NSPoint(x: 12.1, y: 7.2), NSPoint(x: 13.1, y: 10.2), NSPoint(x: 13.9, y: 9),
-            ]
-            let thread = NSBezierPath()
-            thread.move(to: points[0])
-            for point in points.dropFirst() { thread.line(to: point) }
-            stroke(thread, 1.25)
+            // マイクの頭と、中の2本の網目
+            stroke(NSBezierPath(roundedRect: NSRect(x: 6.4, y: 1.8, width: 5.2, height: 9.4), xRadius: 2.6, yRadius: 2.6), 1.35)
+            for y: CGFloat in [4.8, 7.6] {
+                line(NSPoint(x: 7.9, y: y), NSPoint(x: 10.1, y: y), 1.2)
+            }
+            // U字の支えと台
+            let holder = NSBezierPath()
+            holder.appendArc(withCenter: NSPoint(x: 9, y: 8.6), radius: 4.9, startAngle: 180, endAngle: 0, clockwise: true)
+            stroke(holder, 1.35)
+            line(NSPoint(x: 9, y: 13.5), NSPoint(x: 9, y: 15.6), 1.35)
+            line(NSPoint(x: 6.6, y: 15.8), NSPoint(x: 11.4, y: 15.8), 1.35)
             return true
         }
         image.isTemplate = true
