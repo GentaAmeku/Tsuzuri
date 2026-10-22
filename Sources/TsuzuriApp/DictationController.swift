@@ -73,15 +73,6 @@ final class DictationController {
         store.localOnly || (fallbackUntil.map { $0 > Date() } ?? false)
     }
 
-    /// メニューに出す、いまの認識
-    var engineLine: String {
-        if store.localOnly { return "認識: Mac 内(WhisperKit)" }
-        if let until = fallbackUntil, until > Date() {
-            return "認識: Mac 内(Soniox の失敗のあと、\(until.formatted(date: .omitted, time: .shortened)) まで)"
-        }
-        return "認識: Soniox"
-    }
-
     var lastText: String? { DictationHistory.lastText(in: store.history) }
 
     var statusLine: String {

@@ -31,16 +31,22 @@ struct MenuContent: View {
     var body: some View {
         Text(controller.statusLine)
         Divider()
-        Text(controller.engineLine)
-        Text(controller.store.sonioxCostLine)
-        Toggle("Mac 内だけで認識する", isOn: Binding(
+        // 認識は印を付けて選ぶ。Soniox は話しながら文字が出て、Mac 内は止めてから文字にする
+        Picker("認識", selection: Binding(
             get: { controller.store.localOnly },
             set: { controller.store.localOnly = $0 }
-        ))
-        .disabled(!controller.local.isAvailable)
+        )) {
+            Text("Soniox(話しながら文字が出る)").tag(false)
+            Text("Mac 内(止めてから文字にする)").tag(true)
+        }
+        .pickerStyle(.inline)
+        if let until = controller.fallbackUntil, until > Date(), !controller.store.localOnly {
+            Text("Soniox の失敗のあと、\(until.formatted(date: .omitted, time: .shortened)) まで Mac 内で認識します")
+        }
         if !controller.local.isAvailable {
             Text("Mac 内の認識: \(controller.local.stateDescription)")
         }
+        Text(controller.store.sonioxCostLine)
         Button("直前の文字を貼り付け") { controller.pasteLast() }
             .keyboardShortcut("v", modifiers: [.control, .option, .command])
             .disabled(controller.lastText == nil)
