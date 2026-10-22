@@ -24,17 +24,21 @@ final class DictationRun {
     /// 録音中に分かった失敗(つながらない・送れない)
     private(set) var failure: String?
 
+    /// Mac 内で認識するときに、話している途中の文字を出す認識へも標本を渡す(試験)
+    let tap = SampleTap()
+
     init(hud: RecordingHUD) {
         let (chunks, continuation) = AsyncStream.makeStream(of: [Float].self)
         self.chunks = chunks
         self.continuation = continuation
-        self.recorder = MicrophoneRecorder(onSamples: Self.forward(to: continuation, hud: hud))
+        self.recorder = MicrophoneRecorder(onSamples: Self.forward(to: continuation, tap: tap, hud: hud))
     }
 
     /// 音声の処理の糸で呼ばれる。送る列へ入れ、音量だけ画面へ渡す
-    nonisolated private static func forward(to continuation: AsyncStream<[Float]>.Continuation, hud: RecordingHUD) -> @Sendable ([Float]) -> Void {
+    nonisolated private static func forward(to continuation: AsyncStream<[Float]>.Continuation, tap: SampleTap, hud: RecordingHUD) -> @Sendable ([Float]) -> Void {
         { [weak hud] samples in
             continuation.yield(samples)
+            tap.append(samples)
             let level = MicrophoneRecorder.level(of: samples)
             Task { @MainActor in hud?.level = level }
         }
@@ -126,6 +130,45 @@ final class DictationRun {
             "Soniox との通信に失敗しました(\(error.code.rawValue))"
         default:
             "Soniox との通信に失敗しました(\(error.localizedDescription))"
+        }
+    }
+}
+
+/// 録音の標本を、あとから付く受け手へ渡す。受け手が付くまでは、録音の頭を落とさないようにためておく
+nonisolated final class SampleTap: @unchecked Sendable {
+    /// ためておく上限(16kHz で30秒)
+    static let pendingLimit = 16_000 * 30
+    private let lock = NSLock()
+    private var pending: [Float] = []
+    private var consumer: (@Sendable ([Float]) -> Void)?
+    private var closed = false
+
+    func append(_ samples: [Float]) {
+        let consumer: (@Sendable ([Float]) -> Void)? = lock.withLock {
+            guard !closed else { return nil }
+            if self.consumer == nil, pending.count < Self.pendingLimit { pending += samples }
+            return self.consumer
+        }
+        consumer?(samples)
+    }
+
+    /// 受け手を付け、ためておいた分から渡す
+    func attach(_ consumer: @escaping @Sendable ([Float]) -> Void) {
+        let backlog: [Float] = lock.withLock {
+            guard !closed else { return [] }
+            self.consumer = consumer
+            defer { pending = [] }
+            return pending
+        }
+        if !backlog.isEmpty { consumer(backlog) }
+    }
+
+    /// これ以上渡さない
+    func close() {
+        lock.withLock {
+            closed = true
+            consumer = nil
+            pending = []
         }
     }
 }

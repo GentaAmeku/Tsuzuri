@@ -2,6 +2,7 @@ import AppKit
 import KeyboardShortcuts
 import SwiftUI
 import TsuzuriCore
+import TsuzuriEngines
 
 extension KeyboardShortcuts.Name {
     /// 直前の文字をもう一度貼る。設定の窓で変えられる
@@ -30,6 +31,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let index = CommandLine.arguments.firstIndex(of: "--render-hud"), index + 1 < CommandLine.arguments.count {
             RecordingHUD.renderSamples(to: URL(filePath: CommandLine.arguments[index + 1], directoryHint: .isDirectory))
             exit(0)
+        }
+        // アプリの中で、途中の文字の認識に録音を実際の速さで渡し、途中の文字を書き出して終わる(--simulate-live <録音の WAV>)
+        if let index = CommandLine.arguments.firstIndex(of: "--simulate-live"), index + 1 < CommandLine.arguments.count {
+            let url = URL(filePath: CommandLine.arguments[index + 1])
+            Task {
+                do {
+                    let samples = try AudioFile.readSamples(from: url)
+                    print(await AppleSpeechLive.assetReport())
+                    let live = try await AppleSpeechLive.start(terms: [])
+                    let started = Date()
+                    live.onUpdate = { final, volatile in print(String(format: "%.1f秒: %@", Date().timeIntervalSince(started), final + volatile)) }
+                    var fed = 0
+                    while fed < samples.count {
+                        let next = min(samples.count, fed + 1_600)
+                        live.feed(Array(samples[fed..<next]))
+                        fed = next
+                        try await Task.sleep(for: .milliseconds(100))
+                    }
+                    print("最後: " + (await live.finish()))
+                } catch {
+                    print("失敗: \(error)")
+                }
+                exit(0)
+            }
+            return
         }
         // 設定の窓をタブごとに写し取って終わる(--render-settings <フォルダ>)
         if let index = CommandLine.arguments.firstIndex(of: "--render-settings"), index + 1 < CommandLine.arguments.count {

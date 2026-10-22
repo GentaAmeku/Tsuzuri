@@ -64,10 +64,15 @@ final class RecordingHUD {
     }
 
     func update(_ assembler: TranscriptAssembler) {
+        showPartial(final: assembler.finalText, tentative: assembler.tentativeText)
+    }
+
+    /// 話している途中の文字を出す(確定した文字・まだ変わりうる文字)
+    func showPartial(final: String, tentative: String) {
         guard mode == .recording || mode == .finishing else { return }
         let hadText = hasText
-        finalText = assembler.finalText
-        tentativeText = assembler.tentativeText
+        finalText = final
+        tentativeText = tentative
         // 行の数が変わりうるので、文字が変わるたびに大きさを合わせる(ピルからカードへ伸びるときも)
         if hadText != hasText || hasText { scheduleResize() }
     }

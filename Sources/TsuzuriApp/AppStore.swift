@@ -27,6 +27,11 @@ final class AppStore {
         didSet { UserDefaults.standard.set(try? JSONEncoder().encode(hotkeySettings), forKey: Self.hotkeySettingsKey) }
     }
 
+    /// Mac 内で認識するときも、Apple の認識で話している途中の文字を出す(試験。貼る文字は WhisperKit で作る)
+    var localLivePreview: Bool {
+        didSet { UserDefaults.standard.set(localLivePreview, forKey: Self.localLivePreviewKey) }
+    }
+
     /// 録音中の表示の色
     var hudTheme: HUDTheme {
         didSet { UserDefaults.standard.set(hudTheme.rawValue, forKey: Self.hudThemeKey) }
@@ -44,6 +49,7 @@ final class AppStore {
     private static let localOnlyKey = "localOnly"
     private static let hotkeySettingsKey = "hotkeySettings"
     private static let hudThemeKey = "hudTheme"
+    private static let localLivePreviewKey = "localLivePreview"
 
     init() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -54,6 +60,7 @@ final class AppStore {
         hotkeySettings = UserDefaults.standard.data(forKey: Self.hotkeySettingsKey)
             .flatMap { try? JSONDecoder().decode(HotkeySettings.self, from: $0) } ?? HotkeySettings()
         hudTheme = UserDefaults.standard.string(forKey: Self.hudThemeKey).flatMap(HUDTheme.init(rawValue:)) ?? .blueWhite
+        localLivePreview = UserDefaults.standard.object(forKey: Self.localLivePreviewKey) as? Bool ?? true
         keepAudio = UserDefaults.standard.object(forKey: Self.keepAudioKey) as? Bool ?? true
         waObunSpacing = UserDefaults.standard.object(forKey: Self.waObunSpacingKey) as? Bool ?? true
         localOnly = UserDefaults.standard.bool(forKey: Self.localOnlyKey)

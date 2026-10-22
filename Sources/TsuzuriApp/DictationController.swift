@@ -40,6 +40,8 @@ final class DictationController {
     @ObservationIgnored private var submitAfterPaste = false
     /// いまの録音で Soniox に渡したヒントの字数(費用の表示に使う)
     @ObservationIgnored private var runHintCharacters = 0
+    /// Mac 内で認識するときの、話している途中の文字(試験。Apple の認識で表示だけに使う)
+    @ObservationIgnored private var livePreview: Task<AppleSpeechLive?, Never>?
     @ObservationIgnored private var chordTimer: Task<Void, Never>?
     @ObservationIgnored private var apiKey: String?
     @ObservationIgnored private lazy var settingsWindow = SettingsWindow(controller: self)
@@ -177,6 +179,7 @@ final class DictationController {
         phase = .recording
         hud.theme = store.hudTheme
         hud.showRecording(engine: isLocal ? "Mac 内" : "Soniox")
+        if isLocal, store.localLivePreview { startLivePreview(for: run) }
         let window = machine.settings.chordWindowSeconds
         chordTimer = Task { [weak self] in
             try? await Task.sleep(for: .seconds(window))
@@ -210,7 +213,36 @@ final class DictationController {
         )
     }
 
+    /// Mac 内で認識するときも、Apple の認識で話している途中の文字を出す(試験)。準備ができるまでの音はためておいて渡す。
+    /// 使えなければ(日本語のモデルが無いなど)何も出さず、録音と貼る文字には響かない
+    private func startLivePreview(for run: DictationRun) {
+        let hud = hud
+        let terms = Array(dictionary.hintTerms().prefix(WhisperKitEngine.hintLimit))
+        livePreview = Task {
+            do {
+                let live = try await AppleSpeechLive.start(terms: terms)
+                live.onUpdate = { final, volatile in
+                    Task { @MainActor in hud.showPartial(final: final, tentative: volatile) }
+                }
+                run.tap.attach { samples in live.feed(samples) }
+                return live
+            } catch {
+                NSLog("Tsuzuri: 話している途中の文字を出せません: \(error)")
+                return nil
+            }
+        }
+    }
+
+    /// 途中の文字の認識を捨てる(止めた・取り消した)。表示した文字は確定待ちの間そのまま残る
+    private func stopLivePreview(_ run: DictationRun?) {
+        run?.tap.close()
+        guard let livePreview else { return }
+        self.livePreview = nil
+        Task { await livePreview.value?.cancel() }
+    }
+
     private func cancel() {
+        stopLivePreview(run)
         chordTimer?.cancel()
         run?.cancel()
         run = nil
@@ -254,6 +286,7 @@ final class DictationController {
 
     /// 手元の録音を Mac 内で認識する。Soniox の失敗のあとなら、その理由も知らせる
     private func recognizeLocally(_ samples: [Float], run: DictationRun, sonioxFailure: String?) async {
+        stopLivePreview(run)
         let audio = store.saveAudio(samples, startedAt: run.startedAt)
         // 無音に近い録音を渡すと、Whisper は文を作ってしまう
         guard SpeechPresence.hasSpeech(samples) else {
