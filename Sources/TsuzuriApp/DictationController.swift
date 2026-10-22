@@ -104,6 +104,27 @@ final class DictationController {
         if !permissions.allGranted {
             showSettings()
         }
+        reportSetupStatus()
+    }
+
+    /// セットアップの doctor が読めるよう、権限と状態を3秒ごとに見直し、変わったら `setup-status.json` に書く
+    private func reportSetupStatus() {
+        let url = store.directory.appending(path: "setup-status.json")
+        Task { [weak self] in
+            var last: SetupStatus?
+            while let self {
+                let status = SetupStatus.current(listening: self.isListening)
+                if status != last {
+                    do {
+                        try status.write(to: url)
+                        last = status
+                    } catch {
+                        NSLog("Tsuzuri: セットアップの状態を書けません: \(error)")
+                    }
+                }
+                try? await Task.sleep(for: .seconds(3))
+            }
+        }
     }
 
     // MARK: キーの検知

@@ -19,6 +19,9 @@ struct FetchModel: AsyncParsableCommand {
         if apple {
             print("Apple の日本語の認識モデルを取得しています…")
             try await AppleSpeechLive.installJapaneseModel()
+            // セットアップの doctor が確かめる印(Apple のモデルの有無は、アプリの外からは確かめにくい)
+            let marker = try ModelCache.directory().appending(path: "apple-japanese.json")
+            try Data("{\"installedAt\": \"\(Date().ISO8601Format())\"}\n".utf8).write(to: marker, options: .atomic)
             print("取得しました")
         }
     }

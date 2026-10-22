@@ -170,6 +170,11 @@ extension AppleSpeechLive {
             throw AppleSpeechError.localeUnsupported(AppleSpeech.locale.identifier)
         }
         let transcriber = DictationTranscriber(locale: locale, contentHints: [], transcriptionOptions: [], reportingOptions: [.volatileResults], attributeOptions: [])
+        // システムに入っていても、このプロセスへの言語の割り当てが無いと「入っていない」と答えるので、先に割り当てる。
+        // 入っていれば、ここで取得せずに終わる
+        if await AssetInventory.status(forModules: [transcriber]) != .installed {
+            _ = try? await AssetInventory.reserve(locale: locale)
+        }
         try await AppleSpeech.ensureAssets(for: [transcriber], allowDownload: true)
     }
 }

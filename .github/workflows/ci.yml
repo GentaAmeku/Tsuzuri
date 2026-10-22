@@ -20,3 +20,9 @@ jobs:
       - run: swift --version
       - run: swift build
       - run: swift test
+      # セットアップの doctor: 文法と、JSON の形を確かめる(CI ではアプリが入っていないので、終了コードは見ない)
+      - run: zsh -n scripts/doctor.sh
+      - run: |
+          scripts/doctor.sh --json > doctor.json || true
+          python3 -m json.tool doctor.json > /dev/null
+          scripts/doctor.sh --checklist --lang en || true
