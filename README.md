@@ -47,19 +47,7 @@ Choose *On-device* in the menu and nothing leaves the Mac: WhisperKit (Whisper l
 
 ## How it works
 
-```mermaid
-flowchart LR
-    key["Right ⌘ key<br/>(CGEventTap)"] --> mic["Microphone<br/>16 kHz"]
-    mic -- "streamed" --> soniox["Soniox realtime<br/>+ dictionary hints"]
-    mic -- "on-device / fallback" --> whisper["WhisperKit<br/>large-v3"]
-    mic -- "live captions on-device" --> apple["Apple SpeechAnalyzer"]
-    soniox --> shaper["TextShaper<br/>fillers · dictionary · spacing"]
-    whisper --> shaper
-    apple -. "captions only" .-> shaper
-    shaper --> paste["Paste with ⌘V<br/>clipboard restored"]
-    shaper --> scan["Foundation Models<br/>candidate scan"]
-    scan --> window["Candidate window<br/>→ dictionary"]
-```
+![How Tsuzuri works: the right ⌘ key starts a recording that is kept on the Mac; audio streams to Soniox in the cloud, or to the on-device WhisperKit on failure; the text goes through shaping, which uses the dictionary for replacement while the dictionary also sends hints to Soniox; the shaped text is pasted into your app, and a candidate scan with rules and Foundation Models feeds a candidate window where you choose words to add to the dictionary](docs/images/architecture.png)
 
 The code is a Swift package with no Xcode project. `TsuzuriCore` holds everything without side effects — the hotkey state machine, assembling streamed text, the shaping and replacement rules, choosing hints, picking and filtering candidates — and carries the tests (134, written with swift-testing). `TsuzuriEngines` talks to the outside world: the Soniox WebSocket, WhisperKit, SpeechAnalyzer, Foundation Models, the microphone and the Keychain. `TsuzuriApp` is the menu-bar app in SwiftUI and AppKit, and `tsuzuri-eval` is the command-line tool used to measure every decision.
 

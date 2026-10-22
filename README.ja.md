@@ -47,19 +47,7 @@ Mac のメニューバーに常駐する、日本語の音声入力アプリ。�
 
 ## 仕組み
 
-```mermaid
-flowchart LR
-    key["右⌘<br/>(CGEventTap)"] --> mic["マイク<br/>16 kHz"]
-    mic -- "話しながら送る" --> soniox["Soniox の認識<br/>+ 辞書のヒント"]
-    mic -- "Mac 内・予備" --> whisper["WhisperKit<br/>large-v3"]
-    mic -- "Mac 内の途中の文字" --> apple["Apple SpeechAnalyzer"]
-    soniox --> shaper["整える規則<br/>つなぎ言葉・辞書・空白"]
-    whisper --> shaper
-    apple -. "表示だけ" .-> shaper
-    shaper --> paste["⌘V で貼る<br/>クリップボードは戻す"]
-    shaper --> scan["Foundation Models<br/>候補の洗い出し"]
-    scan --> window["候補の窓<br/>→ 辞書"]
-```
+![仕組みの図。右⌘で録音を始め、音声は手元に残す。音声はクラウドの Soniox へ送り、失敗したときは Mac 内の認識へ渡す。文字は整える段で辞書の置き換えを当て、辞書は Soniox に語のヒントも渡す。整えた文字は使うアプリに貼り、貼った文字は規則と Apple FM の洗い出しに回し、候補の窓で選んだ語を辞書に入れる](docs/images/architecture.ja.png)
 
 コードは Xcode のプロジェクトを持たない Swift のパッケージ。`TsuzuriCore` は副作用の無い処理(録音キーの状態の移り変わり・途中の文字の組み立て・整える規則と置き換え・ヒントの選び方・候補の拾い方と除き方)で、テスト(swift-testing で134件)の中心。`TsuzuriEngines` は外とのやり取り(Soniox の WebSocket・WhisperKit・SpeechAnalyzer・Foundation Models・マイク・キーチェーン)。`TsuzuriApp` は SwiftUI と AppKit のメニューバーのアプリで、`tsuzuri-eval` は判断のたびに測るためのコマンドラインの道具。
 
