@@ -105,9 +105,41 @@ struct SettingsView: View {
     @State private var keyMessage: String?
     @State private var loginItem = LoginItem()
 
+    enum Tab: Hashable {
+        case general
+        case keys
+        case sonioxAndDictionary
+    }
+
+    @State var tab: Tab = .general
+
     var body: some View {
+        TabView(selection: $tab) {
+            generalTab
+                .tabItem { Label("一般", systemImage: "gearshape") }
+                .tag(Tab.general)
+            keysTab
+                .tabItem { Label("キー", systemImage: "keyboard") }
+                .tag(Tab.keys)
+            sonioxTab
+                .tabItem { Label("Soniox と辞書", systemImage: "character.book.closed") }
+                .tag(Tab.sonioxAndDictionary)
+        }
+        .frame(width: 560)
+        .task {
+            // 権限はシステム設定で変わるので、窓を開いている間は見直す
+            while !Task.isCancelled {
+                controller.permissions.refresh()
+                loginItem.refresh()
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
+    }
+
+    /// 権限・表示・音声
+    private var generalTab: some View {
         @Bindable var store = controller.store
-        Form {
+        return Form {
             Section("権限") {
                 PermissionRow(
                     title: "マイク",
@@ -117,11 +149,66 @@ struct SettingsView: View {
                 )
                 PermissionRow(
                     title: "アクセシビリティ",
-                    detail: "録音キーの検知・Esc の取り消し・Return の送信・⌘V の貼り付けのため。許可したら、この窓が自動で更新されます",
+                    detail: "キーの検知・Esc・Return・⌘V の貼り付けのため",
                     granted: controller.permissions.accessibility,
                     action: controller.permissions.requestAccessibility
                 )
             }
+            Section("表示と起動") {
+                Picker("録音中の表示の色", selection: $store.hudTheme) {
+                    ForEach(HUDTheme.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                Toggle("ログイン時に起動する", isOn: Binding(get: { loginItem.isEnabled }, set: { loginItem.set($0) }))
+                if let message = loginItem.message {
+                    Text(message).font(.caption).foregroundStyle(.orange)
+                }
+                Toggle("録音を7日間残す(認識し直しと評価に使う)", isOn: $store.keepAudio)
+            }
+        }
+        .formStyle(.grouped)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// 録音キー・操作の方式・ショートカット・使い方
+    private var keysTab: some View {
+        Form {
+            Section {
+                Picker("録音キー", selection: hotkey(\.key)) {
+                    ForEach(HotkeySettings.Key.allCases, id: \.self) { Text($0.label).tag($0) }
+                }
+                if controller.hotkeySettings.key == .fn {
+                    Text("fn は、システム設定の「キーボード」で「🌐キーを押して」を「何もしない」にしてから使ってください。")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+                Picker("操作の方式", selection: hotkey(\.mode)) {
+                    ForEach(HotkeySettings.Mode.allCases, id: \.self) { Text($0.shortLabel).tag($0) }
+                }
+                if controller.hotkeySettings.mode == .hybrid {
+                    LabeledContent("長押しとみなす秒数") {
+                        Stepper(String(format: "%.1f 秒", controller.hotkeySettings.longPressSeconds), value: hotkey(\.longPressSeconds), in: 0.3...1.5, step: 0.1)
+                    }
+                }
+                KeyboardShortcuts.Recorder("直前の文字をもう一度貼る", name: .pasteLast)
+                if controller.phase != .idle {
+                    Text("録音中は変えられません").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            .disabled(controller.phase != .idle)
+            Section("使い方") {
+                Text(usage)
+                Text("録音中に Return で、止めて貼ったあとに送信します。Esc で取り消します。")
+            }
+            .font(.callout)
+        }
+        .formStyle(.grouped)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// Soniox の API キーと辞書
+    private var sonioxTab: some View {
+        @Bindable var store = controller.store
+        return Form {
             Section("Soniox") {
                 LabeledContent("API キー") {
                     switch controller.hasAPIKey {
@@ -138,82 +225,24 @@ struct SettingsView: View {
                 if let keyMessage {
                     Text(keyMessage).font(.caption).foregroundStyle(.secondary)
                 }
-                Text("キーはキーチェーン(Tsuzuri.Soniox)に置き、画面やファイルには出しません。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Section("キー") {
-                Picker("録音キー", selection: hotkey(\.key)) {
-                    ForEach(HotkeySettings.Key.allCases, id: \.self) { Text($0.label).tag($0) }
-                }
-                if controller.hotkeySettings.key == .fn {
-                    Text("fn を使うときは、システム設定の「キーボード」で「🌐キーを押して」を「何もしない」にしてください(そのままだと入力ソースの切り替えなども起きます)。")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-                Picker("操作の方式", selection: hotkey(\.mode)) {
-                    ForEach(HotkeySettings.Mode.allCases, id: \.self) { Text($0.label).tag($0) }
-                }
-                if controller.hotkeySettings.mode == .hybrid {
-                    LabeledContent("長押しとみなす秒数") {
-                        Stepper(String(format: "%.1f 秒", controller.hotkeySettings.longPressSeconds), value: hotkey(\.longPressSeconds), in: 0.3...1.5, step: 0.1)
-                    }
-                }
-                KeyboardShortcuts.Recorder("直前の文字をもう一度貼る", name: .pasteLast)
-                if controller.phase != .idle {
-                    Text("録音中は変えられません").font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            .disabled(controller.phase != .idle)
-            Section("表示") {
-                Picker("録音中の表示の色", selection: $store.hudTheme) {
-                    ForEach(HUDTheme.allCases, id: \.self) { Text($0.label).tag($0) }
-                }
-                Toggle("ログイン時に起動する", isOn: Binding(get: { loginItem.isEnabled }, set: { loginItem.set($0) }))
-                if let message = loginItem.message {
-                    Text(message).font(.caption).foregroundStyle(.orange)
-                }
             }
             Section("辞書") {
                 LabeledContent("語の数") {
-                    Text("\(controller.dictionary.dictionary.entries.count) 語(ヒントに使う語は最大100語)")
+                    Text("\(controller.dictionary.dictionary.entries.count) 語")
                 }
                 if let error = controller.dictionary.loadError {
                     Text(error).font(.caption).foregroundStyle(.orange)
                 }
                 HStack {
-                    Text("置き換え元(from)に聞き違いを足すと、正しい表記に直して貼ります。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
                     Button("辞書を編集…") { controller.showDictionary() }
                     Button("ファイルを開く") { controller.dictionary.openInEditor() }
+                    Spacer()
                 }
                 Toggle("日本語と英字のあいだに半角スペースを入れる", isOn: $store.waObunSpacing)
             }
-            Section("音声") {
-                Toggle("録音を7日間残す", isOn: $store.keepAudio)
-                Text("メニューの「直前の録音を認識し直す」と、精度の評価に使います。失敗したときの録音もここに残ります。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Section("使い方") {
-                Text(usage)
-                Text("録音中に Return を押すと、止めて貼り付けたあとに Return を送ります(Slack などでそのまま送信)。Esc で取り消します。")
-            }
-            .font(.callout)
         }
         .formStyle(.grouped)
-        .frame(width: 520)
         .fixedSize(horizontal: false, vertical: true)
-        .task {
-            // 権限はシステム設定で変わるので、窓を開いている間は見直す
-            while !Task.isCancelled {
-                controller.permissions.refresh()
-                loginItem.refresh()
-                try? await Task.sleep(for: .seconds(1))
-            }
-        }
     }
 
     private func hotkey<Value>(_ keyPath: WritableKeyPath<HotkeySettings, Value>) -> Binding<Value> {
@@ -271,6 +300,28 @@ struct PermissionRow: View {
             if !granted {
                 Button("許可する", action: action)
             }
+        }
+    }
+}
+
+extension SettingsWindow {
+    /// 動作の確かめ用。設定の窓をタブごとに本物の窓へ出し、中身を PNG に写し取って大きさを書き出す
+    static func renderTabs(controller: DictationController, to directory: URL) async {
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let tabs: [(String, SettingsView.Tab)] = [("general", .general), ("keys", .keys), ("soniox", .sonioxAndDictionary)]
+        for (name, tab) in tabs {
+            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(controller: controller, tab: tab)))
+            window.title = "Tsuzuri の設定"
+            window.styleMask = [.titled, .closable]
+            window.center()
+            window.orderFront(nil)
+            try? await Task.sleep(for: .milliseconds(800))
+            if let view = window.contentView, let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: directory.appending(path: "settings-\(name).png"))
+                print("\(name): 窓の中身 \(view.bounds.size)")
+            }
+            window.close()
         }
     }
 }

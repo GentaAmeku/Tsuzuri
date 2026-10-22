@@ -31,6 +31,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             RecordingHUD.renderSamples(to: URL(filePath: CommandLine.arguments[index + 1], directoryHint: .isDirectory))
             exit(0)
         }
+        // 設定の窓をタブごとに写し取って終わる(--render-settings <フォルダ>)
+        if let index = CommandLine.arguments.firstIndex(of: "--render-settings"), index + 1 < CommandLine.arguments.count {
+            let directory = URL(filePath: CommandLine.arguments[index + 1], directoryHint: .isDirectory)
+            Task {
+                await SettingsWindow.renderTabs(controller: controller, to: directory)
+                exit(0)
+            }
+            return
+        }
+        // 本物の窓で、音量と文字を流しながら表示を写し取って終わる(--simulate-hud <フォルダ> [dark])
+        if let index = CommandLine.arguments.firstIndex(of: "--simulate-hud"), index + 1 < CommandLine.arguments.count {
+            let directory = URL(filePath: CommandLine.arguments[index + 1], directoryHint: .isDirectory)
+            let theme: HUDTheme = CommandLine.arguments.contains("dark") ? .dark : .blueWhite
+            Task {
+                await RecordingHUD.simulate(to: directory, theme: theme)
+                exit(0)
+            }
+            return
+        }
         NSApp.setActivationPolicy(.accessory)
         KeyboardShortcuts.onKeyUp(for: .pasteLast) { [controller] in
             controller.pasteLast()

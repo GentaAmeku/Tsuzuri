@@ -31,6 +31,15 @@ public struct HotkeySettings: Sendable, Equatable, Codable {
             case .hold: "押している間だけ"
             }
         }
+
+        /// 設定の窓の選び肢に出す短い名前
+        public var shortLabel: String {
+            switch self {
+            case .hybrid: "ハイブリッド"
+            case .toggle: "押すたびに切り替え"
+            case .hold: "押している間だけ"
+            }
+        }
     }
 
     public var key: Key

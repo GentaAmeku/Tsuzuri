@@ -42,8 +42,8 @@ final class RecordingHUD {
 
     static let levelCount = 22
 
-    @ObservationIgnored private var panel: NSPanel?
-    @ObservationIgnored private var hostingView: NSHostingView<HUDView>?
+    @ObservationIgnored fileprivate var panel: NSPanel?
+    @ObservationIgnored fileprivate var hostingView: NSHostingView<HUDView>?
     @ObservationIgnored private var noticeTask: Task<Void, Never>?
     /// 表示の下の辺の中央(画面の座標)。大きさが変わっても、ここを動かさずに上へ伸ばす
     @ObservationIgnored private var anchor = CGPoint.zero
@@ -238,7 +238,15 @@ struct HUDView: View {
                     .fixedSize()
             } else {
                 if hud.engineLabel != "Soniox" {
-                    Text(hud.engineLabel).font(.system(size: 11)).foregroundStyle(palette.secondary).fixedSize()
+                    // Mac 内で認識するときは、止めてから文字にする(話している途中の文字は出ない)ことが分かるようにする
+                    Text(hud.engineLabel)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(palette.accent)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(Capsule().strokeBorder(palette.accent.opacity(0.5)))
+                        .fixedSize()
+                        .help("Mac 内で認識しています。文字は止めてから出ます")
                 }
                 Image(systemName: "mic.fill")
                     .font(.system(size: 14))
@@ -309,11 +317,11 @@ struct Waveform: View {
             ForEach(Array(levels.enumerated()), id: \.offset) { _, level in
                 RoundedRectangle(cornerRadius: 1)
                     .fill(color)
-                    .frame(width: 2, height: flat ? 3 : CGFloat(3 + min(1, max(0, level)) * 11))
+                    .frame(width: 2, height: flat ? 3 : CGFloat(3 + min(1, max(0, level)) * 15))
             }
         }
         .frame(height: 20)
-        .animation(.linear(duration: 0.08), value: levels)
+        .animation(.linear(duration: 0.06), value: levels)
     }
 }
 
@@ -366,5 +374,49 @@ extension RecordingHUD {
                 try? png.write(to: directory.appending(path: "hud-\(theme.rawValue)-\(sample.name).png"))
             }
         }
+    }
+}
+
+extension RecordingHUD {
+    /// 動作の確かめ用。本物の窓に出し、音量と文字を流しながら、窓の中身を PNG に写し取り、窓の大きさを書き出す
+    static func simulate(to directory: URL, theme: HUDTheme) async {
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let hud = RecordingHUD()
+        hud.theme = theme
+        hud.showRecording(engine: "Soniox")
+        let feeder = Task { @MainActor in
+            var phase = 0.0
+            while !Task.isCancelled {
+                phase += 0.45
+                hud.level = Float(0.15 + 0.45 * abs(sin(phase)) * Double.random(in: 0.6...1))
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+        }
+        func snap(_ name: String) {
+            guard let panel = hud.panel, let view = panel.contentView,
+                  let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+            view.cacheDisplay(in: view.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: directory.appending(path: "\(name).png"))
+            print("\(name): 窓 \(panel.frame.size) 中身の大きさ \(hud.hostingView?.fittingSize ?? .zero) 音量の列 \(hud.levels.suffix(4).map { String(format: "%.2f", $0) })")
+        }
+        try? await Task.sleep(for: .seconds(1))
+        snap("1-start-a")
+        try? await Task.sleep(for: .milliseconds(300))
+        snap("2-start-b")
+        var assembler = TranscriptAssembler()
+        assembler.apply([.init(text: "1回実演で見せます。", isFinal: true), .init(text: "仕事のメモ", isFinal: false)])
+        hud.update(assembler)
+        try? await Task.sleep(for: .milliseconds(400))
+        snap("3-text-short")
+        assembler.apply([.init(text: "仕事のメモっぽい文を読み上げるので、", isFinal: true), .init(text: "どう変換されるかを見てください。長い文になったときの見え方も", isFinal: false)])
+        hud.update(assembler)
+        try? await Task.sleep(for: .milliseconds(400))
+        snap("4-text-long")
+        feeder.cancel()
+        hud.willSubmit = true
+        hud.showFinishing("確定を待っています")
+        try? await Task.sleep(for: .milliseconds(400))
+        snap("5-finishing")
+        hud.hide()
     }
 }

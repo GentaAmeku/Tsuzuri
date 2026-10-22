@@ -1,5 +1,6 @@
 @preconcurrency import AVFoundation
 import Foundation
+import TsuzuriCore
 
 /// マイクの音を 16kHz・モノラルに変換しながらためる。止めると、たまった標本列を返す。
 /// `onSamples` を渡すと、変換したそばから音声の処理の糸で受け取れる(話しながら送るため)
@@ -47,9 +48,7 @@ public final class MicrophoneRecorder: @unchecked Sendable {
 
     /// 音量の目安(0〜1)。標本の二乗平均の平方根を、話し声が棒の中ほどに来るよう広げる
     public static func level(of samples: [Float]) -> Float {
-        guard !samples.isEmpty else { return 0 }
-        let rms = (samples.reduce(0) { $0 + $1 * $1 } / Float(samples.count)).squareRoot()
-        return min(1, rms * 8)
+        AudioLevel.meter(of: samples)
     }
 
     /// 音声の処理の糸で呼ばれる。変換器の内部の状態を保つため、渡し終えたら noDataNow を返す
