@@ -3,7 +3,7 @@ import Foundation
 import Speech
 import TsuzuriCore
 
-/// Apple の認識(DictationTranscriber)に、録音を少しずつ渡して、話している途中の文字を受け取る(試験。Mac 内の認識の途中の文字に使う)。
+/// Apple の認識(DictationTranscriber)に、録音を少しずつ渡して、話している途中の文字を受け取る(Mac 内の認識の途中の文字に使う)。
 /// 貼る文字は WhisperKit で作り、こちらは表示だけに使う
 public final class AppleSpeechLive: @unchecked Sendable {
     private let analyzer: SpeechAnalyzer

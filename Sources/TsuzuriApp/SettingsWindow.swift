@@ -173,7 +173,7 @@ struct SettingsView: View {
                 Toggle("録音を7日間残す(認識し直しと評価に使う)", isOn: $store.keepAudio)
             }
             Section("Mac 内の認識") {
-                Toggle("Mac 内でも話しながら文字を出す(試験)", isOn: $store.localLivePreview)
+                Toggle("Mac 内でも話しながら文字を出す", isOn: $store.localLivePreview)
                 Text("途中の文字は Apple の認識で出し、貼る文字は今までどおり WhisperKit で作ります。止めたあと、貼る文字が途中の文字と少し変わることがあります。")
                     .font(.caption)
                     .foregroundStyle(.secondary)

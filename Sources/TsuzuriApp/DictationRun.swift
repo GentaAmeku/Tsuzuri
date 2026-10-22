@@ -24,7 +24,7 @@ final class DictationRun {
     /// 録音中に分かった失敗(つながらない・送れない)
     private(set) var failure: String?
 
-    /// Mac 内で認識するときに、話している途中の文字を出す認識へも標本を渡す(試験)
+    /// Mac 内で認識するときに、話している途中の文字を出す認識へも標本を渡す
     let tap = SampleTap()
 
     init(hud: RecordingHUD) {

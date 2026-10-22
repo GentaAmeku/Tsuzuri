@@ -27,7 +27,7 @@ final class AppStore {
         didSet { UserDefaults.standard.set(try? JSONEncoder().encode(hotkeySettings), forKey: Self.hotkeySettingsKey) }
     }
 
-    /// Mac 内で認識するときも、Apple の認識で話している途中の文字を出す(試験。貼る文字は WhisperKit で作る)
+    /// Mac 内で認識するときも、Apple の認識で話している途中の文字を出す(貼る文字は WhisperKit で作る。既定は入)
     var localLivePreview: Bool {
         didSet { UserDefaults.standard.set(localLivePreview, forKey: Self.localLivePreviewKey) }
     }

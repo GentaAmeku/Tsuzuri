@@ -40,7 +40,7 @@ final class DictationController {
     @ObservationIgnored private var submitAfterPaste = false
     /// いまの録音で Soniox に渡したヒントの字数(費用の表示に使う)
     @ObservationIgnored private var runHintCharacters = 0
-    /// Mac 内で認識するときの、話している途中の文字(試験。Apple の認識で表示だけに使う)
+    /// Mac 内で認識するときの、話している途中の文字(Apple の認識で表示だけに使う)
     @ObservationIgnored private var livePreview: Task<AppleSpeechLive?, Never>?
     @ObservationIgnored private var chordTimer: Task<Void, Never>?
     @ObservationIgnored private var apiKey: String?
@@ -213,7 +213,7 @@ final class DictationController {
         )
     }
 
-    /// Mac 内で認識するときも、Apple の認識で話している途中の文字を出す(試験)。準備ができるまでの音はためておいて渡す。
+    /// Mac 内で認識するときも、Apple の認識で話している途中の文字を出す。準備ができるまでの音はためておいて渡す。
     /// 使えなければ(日本語のモデルが無いなど)何も出さず、録音と貼る文字には響かない
     private func startLivePreview(for run: DictationRun) {
         let hud = hud
