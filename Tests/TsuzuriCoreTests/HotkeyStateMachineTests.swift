@@ -175,3 +175,33 @@ struct HotkeySettingsTests {
         #expect(HUDTheme.allCases.map(\.label) == ["青と白", "黒"])
     }
 }
+
+@Suite("停止ボタン(段階4)")
+struct HotkeyStopButtonTests {
+    @Test("録音中に停止ボタンを押すと、録音キーと同じく止める")
+    func stopsWhileRecording() {
+        var machine = HotkeyStateMachine()
+        _ = machine.handle(.keyDown(at: 0))
+        _ = machine.handle(.keyUp(at: 0.1))
+        #expect(machine.handle(.stopButton) == .init([.stop]))
+        #expect(machine.state == .finishing)
+    }
+
+    @Test("押してすぐ(つなぐ前)なら、つないでから止める")
+    func connectsThenStopsWhenArmed() {
+        var machine = HotkeyStateMachine()
+        _ = machine.handle(.keyDown(at: 0))
+        #expect(machine.handle(.stopButton) == .init([.connect, .stop]))
+        #expect(machine.state == .finishing)
+    }
+
+    @Test("待機中と確定待ちの間は、何もしない")
+    func ignoresOtherwise() {
+        var machine = HotkeyStateMachine()
+        #expect(machine.handle(.stopButton) == .init())
+        _ = machine.handle(.keyDown(at: 0))
+        _ = machine.handle(.keyUp(at: 0.1))
+        _ = machine.handle(.keyDown(at: 3))
+        #expect(machine.handle(.stopButton) == .init())
+    }
+}

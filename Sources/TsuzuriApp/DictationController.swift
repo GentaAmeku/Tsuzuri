@@ -50,6 +50,8 @@ final class DictationController {
         dictionary = DictionaryStore(directory: store.directory)
         candidates = CandidateStore(directory: store.directory, dictionary: dictionary)
         machine.settings = store.hotkeySettings
+        // 録音中の表示の停止ボタンは、録音キーで止めたときと同じ流れに通す
+        hud.onStop = { [weak self] in _ = self?.handle(.stopButton) }
     }
 
     /// 録音キーと操作の方式。設定の窓で変えると、次の押下から効く

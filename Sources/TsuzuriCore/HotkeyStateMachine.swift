@@ -22,6 +22,8 @@ public struct HotkeyStateMachine: Sendable {
         case escape
         /// Return が押された(段階4。録音中なら、貼り付けたあとに Return を送る)
         case returnKey(at: Double)
+        /// 録音中の表示の停止ボタンが押された(段階4)
+        case stopButton
         /// 確定・貼り付けまで終わった(失敗を含む)
         case finished
     }
@@ -88,6 +90,15 @@ public struct HotkeyStateMachine: Sendable {
             guard at - pressedAt <= settings.chordWindowSeconds else { return Output() }
             state = .idle
             return Output([.discard])
+
+        case (.armed, .stopButton):
+            // まだつないでいない。つないでから止め、ためた音声を送る
+            state = .finishing
+            return Output([.connect, .stop])
+
+        case (.recording, .stopButton):
+            state = .finishing
+            return Output([.stop])
 
         case (.recording, .returnKey):
             // 押した瞬間に止め、貼り付けたあとに送る。Return は貼り付けより先に届かないよう止める
