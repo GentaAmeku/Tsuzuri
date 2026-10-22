@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import TsuzuriCore
 
@@ -156,5 +157,21 @@ struct HotkeyReturnTests {
         _ = machine.handle(.returnKey(at: 3))
         #expect(machine.handle(.escape) == .init([.cancel], consume: true))
         #expect(!machine.submitRequested)
+    }
+}
+
+@Suite("キーの設定(段階4)")
+struct HotkeySettingsTests {
+    @Test("保存した設定は、録音キーを足したあとも読める")
+    func decodesSavedSettings() throws {
+        let saved = #"{"key":"rightCommand","mode":"hybrid","longPressSeconds":0.5,"chordWindowSeconds":0.2}"#
+        let settings = try JSONDecoder().decode(HotkeySettings.self, from: Data(saved.utf8))
+        #expect(settings == HotkeySettings())
+    }
+
+    @Test("録音キーと方式は、画面に出す名前を持つ")
+    func labels() {
+        #expect(HotkeySettings.Key.allCases.map(\.label) == ["右⌘", "右⌥", "fn"])
+        #expect(HUDTheme.allCases.map(\.label) == ["青と白", "黒"])
     }
 }

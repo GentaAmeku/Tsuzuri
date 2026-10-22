@@ -22,18 +22,38 @@ final class AppStore {
         didSet { UserDefaults.standard.set(waObunSpacing, forKey: Self.waObunSpacingKey) }
     }
 
+    /// 録音キーと操作の方式(段階4から設定の窓で変えられる)
+    var hotkeySettings: HotkeySettings {
+        didSet { UserDefaults.standard.set(try? JSONEncoder().encode(hotkeySettings), forKey: Self.hotkeySettingsKey) }
+    }
+
+    /// 録音中の表示の色
+    var hudTheme: HUDTheme {
+        didSet { UserDefaults.standard.set(hudTheme.rawValue, forKey: Self.hudThemeKey) }
+    }
+
+    /// 月ごとの Soniox の使用量(`soniox-usage.json`。費用の表示に使う)
+    private(set) var sonioxUsage = SonioxUsageFile()
+
     @ObservationIgnored let directory: URL
     @ObservationIgnored private let historyURL: URL
     @ObservationIgnored private let audioDirectory: URL
+    @ObservationIgnored private let sonioxUsageURL: URL
     private static let keepAudioKey = "keepAudio"
     private static let waObunSpacingKey = "waObunSpacing"
     private static let localOnlyKey = "localOnly"
+    private static let hotkeySettingsKey = "hotkeySettings"
+    private static let hudThemeKey = "hudTheme"
 
     init() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         directory = support.appending(path: "Tsuzuri", directoryHint: .isDirectory)
         historyURL = directory.appending(path: "history.jsonl")
         audioDirectory = directory.appending(path: "audio", directoryHint: .isDirectory)
+        sonioxUsageURL = directory.appending(path: "soniox-usage.json")
+        hotkeySettings = UserDefaults.standard.data(forKey: Self.hotkeySettingsKey)
+            .flatMap { try? JSONDecoder().decode(HotkeySettings.self, from: $0) } ?? HotkeySettings()
+        hudTheme = UserDefaults.standard.string(forKey: Self.hudThemeKey).flatMap(HUDTheme.init(rawValue:)) ?? .blueWhite
         keepAudio = UserDefaults.standard.object(forKey: Self.keepAudioKey) as? Bool ?? true
         waObunSpacing = UserDefaults.standard.object(forKey: Self.waObunSpacingKey) as? Bool ?? true
         localOnly = UserDefaults.standard.bool(forKey: Self.localOnlyKey)
@@ -41,6 +61,26 @@ final class AppStore {
         if let lines = try? String(contentsOf: historyURL, encoding: .utf8) {
             history = DictationHistory.decode(lines)
         }
+        if let data = try? Data(contentsOf: sonioxUsageURL), let file = try? JSONDecoder().decode(SonioxUsageFile.self, from: data) {
+            sonioxUsage = file
+        }
+    }
+
+    /// Soniox で1回認識したことを、月ごとの使用量に足す
+    func recordSoniox(audioSeconds: Double, hintCharacters: Int) {
+        sonioxUsage = sonioxUsage.adding(audioSeconds: audioSeconds, hintCharacters: hintCharacters, at: Date())
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            try encoder.encode(sonioxUsage).write(to: sonioxUsageURL, options: .atomic)
+        } catch {
+            NSLog("Tsuzuri: Soniox の使用量を書けません: \(error)")
+        }
+    }
+
+    /// メニューに出す、今月の Soniox の使用時間と推定の代金
+    var sonioxCostLine: String {
+        SonioxPricing().menuLine(sonioxUsage.month(of: Date()))
     }
 
     func record(_ entry: HistoryEntry) {

@@ -66,6 +66,7 @@ scripts/build-app-bundle.sh --install
 | 右⌘を長く押す(0.5秒以上) | 押している間だけ録り、離すと貼り付ける |
 | 右⌘と一緒にほかのキー(0.2秒以内) | ⌘C などの同時押しとみなし、何もしない |
 | 録音中に Esc | 取り消す(Esc は相手のアプリに届けない) |
+| 録音中に Return | 止めて貼り付けたあとに Return を送る(段階4。Slack などでそのまま送信) |
 | ⌃⌥⌘V | 直前の文字をもう一度貼る |
 
 履歴(直近100件)と7日分の音声は `~/Library/Application Support/Tsuzuri/` に置く。段階1では整える規則が無いので、Soniox の出力をそのまま貼る。Soniox に2秒でつながらない・確定が3秒を超えたときは、画面で知らせて録音を履歴に残す。
@@ -85,6 +86,16 @@ scripts/build-app-bundle.sh --install
 
 ```bash
 swift run tsuzuri-eval suggest
+```
+
+## 段階4: 設定と表示
+
+設定の窓で、録音キー(右⌘・右⌥・fn)・操作の方式・長押しの秒数・⌃⌥⌘V の組み合わせ・録音中の表示の色(青と白・黒)・ログイン時の起動を変えられる。メニューには今月の Soniox の使用時間と推定の代金を出す(`soniox-usage.json` に月ごとに足す)。
+
+録音中の表示は、画面の録画の権限が無くても画像に描き出して確かめられる
+
+```bash
+swift build && .build/debug/TsuzuriApp --render-hud /tmp/tsuzuri-hud
 ```
 
 ## フォルダ

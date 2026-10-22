@@ -78,6 +78,22 @@ enum Paster {
         }
     }
 
+    /// Return を送る(録音中に Return が押されたとき、貼り終えてから)。自分のキーとして数えない印を付ける
+    static func sendReturn() {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        source?.setLocalEventsFilterDuringSuppressionState(
+            [.permitLocalMouseEvents, .permitSystemDefinedEvents],
+            state: .eventSuppressionStateSuppressionInterval
+        )
+        let returnKey: CGKeyCode = 36
+        for keyDown in [true, false] {
+            guard let event = CGEvent(keyboardEventSource: source, virtualKey: returnKey, keyDown: keyDown) else { continue }
+            event.flags = []
+            event.setIntegerValueField(.eventSourceUserData, value: KeyMonitor.syntheticMarker)
+            event.post(tap: .cghidEventTap)
+        }
+    }
+
     /// フォーカスのある要素をアクセシビリティ API で読む。読めなければ nil
     static func focusedElement() -> PasteDecision.Focus? {
         let system = AXUIElementCreateSystemWide()

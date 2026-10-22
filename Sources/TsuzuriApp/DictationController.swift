@@ -36,6 +36,10 @@ final class DictationController {
     @ObservationIgnored private var run: DictationRun?
     /// いまの録音を Mac 内で認識するか(録音を始めたときに決める)
     @ObservationIgnored private var runIsLocal = false
+    /// 録音中に Return が押され、貼り付けたあとに Return を送るか(段階4)
+    @ObservationIgnored private var submitAfterPaste = false
+    /// いまの録音で Soniox に渡したヒントの字数(費用の表示に使う)
+    @ObservationIgnored private var runHintCharacters = 0
     @ObservationIgnored private var chordTimer: Task<Void, Never>?
     @ObservationIgnored private var apiKey: String?
     @ObservationIgnored private lazy var settingsWindow = SettingsWindow(controller: self)
@@ -45,7 +49,20 @@ final class DictationController {
     init() {
         dictionary = DictionaryStore(directory: store.directory)
         candidates = CandidateStore(directory: store.directory, dictionary: dictionary)
+        machine.settings = store.hotkeySettings
     }
+
+    /// 録音キーと操作の方式。設定の窓で変えると、次の押下から効く
+    var hotkeySettings: HotkeySettings {
+        get { store.hotkeySettings }
+        set {
+            store.hotkeySettings = newValue
+            machine.settings = newValue
+            keyMonitor?.key = newValue.key
+        }
+    }
+
+    var keyLabel: String { store.hotkeySettings.key.label }
 
     var isReady: Bool { isListening && (store.localOnly || hasAPIKey == true) && permissions.microphone == .authorized }
 
@@ -67,7 +84,7 @@ final class DictationController {
 
     var statusLine: String {
         switch phase {
-        case .recording: return "録音中(右⌘で止める・Esc で取り消す)"
+        case .recording: return "録音中(\(keyLabel)で止める・Return で貼って送信・Esc で取り消す)"
         case .finishing: return "文字の確定を待っています"
         case .idle:
             if !isListening { return "アクセシビリティの権限が要ります" }
@@ -75,7 +92,7 @@ final class DictationController {
             if !store.localOnly, hasAPIKey == false { return "Soniox の API キーが未登録です" }
             if permissions.microphone != .authorized { return "マイクの権限が要ります" }
             if dictionary.loadError != nil { return "辞書のファイルを読めません(設定を見てください)" }
-            return "待機中(右⌘で録音)"
+            return "待機中(\(keyLabel)で録音)"
         }
     }
 
@@ -94,7 +111,7 @@ final class DictationController {
 
     /// アクセシビリティの権限が付くまで、1秒ごとにキーの検知を始め直す
     private func startListening() {
-        let monitor = KeyMonitor { [weak self] event in
+        let monitor = KeyMonitor(key: store.hotkeySettings.key) { [weak self] event in
             self?.handle(event) ?? false
         }
         if monitor.start() {
@@ -125,8 +142,8 @@ final class DictationController {
         case .discard, .cancel: cancel()
         case .stop: stop()
         case .submitAfterPaste:
-            // 段階4で組み込む(段階3の判断のあと)。キーの検知はまだ Return をこの出来事として渡さない
-            break
+            submitAfterPaste = true
+            hud.willSubmit = true
         }
     }
 
@@ -159,9 +176,14 @@ final class DictationController {
         } catch {
             return abort("録音を始められません(\(error))")
         }
-        // 表示は、同時押しでないと分かってつなぐときに出す(⌘C のたびにちらつかせない)
+        // 表示は押した瞬間に出し、同時押し(⌘C など)と分かったら消す(設計書「録音中の表示は段階4で直す」)
         self.run = run
         runIsLocal = isLocal
+        submitAfterPaste = false
+        runHintCharacters = 0
+        phase = .recording
+        hud.theme = store.hudTheme
+        hud.showRecording(engine: isLocal ? "Mac 内" : "Soniox")
         let window = machine.settings.chordWindowSeconds
         chordTimer = Task { [weak self] in
             try? await Task.sleep(for: .seconds(window))
@@ -178,14 +200,14 @@ final class DictationController {
 
     private func connect() {
         guard let run else { return }
-        phase = .recording
-        hud.showRecording(engine: runIsLocal ? "Mac 内" : "Soniox")
         // Mac 内で認識するときは、止めてから録音をまとめて渡す(話している途中の文字は出ない)
         guard !runIsLocal, let apiKey else { return }
         let hud = hud
+        let terms = dictionary.hintTerms()
+        runHintCharacters = terms.reduce(0) { $0 + $1.count }
         run.connect(
             apiKey: apiKey,
-            terms: dictionary.hintTerms(),
+            terms: terms,
             onUpdate: { assembler in
                 Task { @MainActor in hud.update(assembler) }
             },
@@ -199,6 +221,7 @@ final class DictationController {
         chordTimer?.cancel()
         run?.cancel()
         run = nil
+        submitAfterPaste = false
         phase = .idle
         hud.hide()
     }
@@ -230,6 +253,7 @@ final class DictationController {
             fallbackUntil = Date().addingTimeInterval(Self.fallbackSeconds)
             await recognizeLocally(samples, run: run, sonioxFailure: message)
         case let .text(text, samples):
+            store.recordSoniox(audioSeconds: Double(samples.count) / AudioFile.sampleRate, hintCharacters: runHintCharacters)
             let audio = store.saveAudio(samples, startedAt: run.startedAt)
             await deliver(text, engine: "soniox", audio: audio, startedAt: run.startedAt)
         }
@@ -267,11 +291,15 @@ final class DictationController {
         let shaped = dictionary.shaper(waObunSpacing: store.waObunSpacing).shape(text)
         store.record(HistoryEntry(date: startedAt, app: app, engine: engine, raw: text, text: shaped, audio: audio))
         dictionary.recordUsage(in: shaped)
+        let submit = submitAfterPaste
+        submitAfterPaste = false
         switch await Paster.paste(shaped) {
         case .pasted:
+            // 録音中に Return が押されていたら、貼り終えてから送る
+            if submit { Paster.sendReturn() }
             if let notice { hud.notice(notice) } else { hud.hide() }
         case .clipboardOnly:
-            hud.notice("入力欄が無いので、クリップボードに残しました")
+            hud.notice(submit ? "入力欄が無いので、送らずにクリップボードに残しました" : "入力欄が無いので、クリップボードに残しました")
         }
         candidates.scan(shaped, app: app)
     }
@@ -316,8 +344,10 @@ final class DictationController {
                     text = try await local.transcribe(samples, terms: dictionary.hintTerms())
                 } else {
                     guard let apiKey else { return hud.notice("Soniox の API キーが未登録です") }
-                    let settings = SonioxSettings(terms: dictionary.hintTerms(), clientReferenceID: "tsuzuri-app", paceInRealTime: false, timeoutSeconds: 15)
+                    let terms = dictionary.hintTerms()
+                    let settings = SonioxSettings(terms: terms, clientReferenceID: "tsuzuri-app", paceInRealTime: false, timeoutSeconds: 15)
                     text = try await SonioxRealtime.transcribe(samples: samples, apiKey: apiKey, settings: settings).text
+                    store.recordSoniox(audioSeconds: Double(samples.count) / AudioFile.sampleRate, hintCharacters: terms.reduce(0) { $0 + $1.count })
                 }
                 await deliver(text, engine: locally ? "whisperkit" : "soniox", audio: name, startedAt: Date())
             } catch {
@@ -337,6 +367,23 @@ final class DictationController {
 
     func showCandidates() {
         candidateWindow.show()
+    }
+
+    /// 動作の確かめ用。録音中の表示を見本の文字で出し、少したったら確定待ちに変えて消す
+    func previewHUD(theme: HUDTheme) {
+        hud.theme = theme
+        hud.showRecording(engine: "Soniox")
+        var assembler = TranscriptAssembler()
+        assembler.apply([.init(text: "テストの件、午後に", isFinal: true), .init(text: "確認します", isFinal: false)])
+        hud.update(assembler)
+        hud.level = 0.6
+        Task {
+            try? await Task.sleep(for: .seconds(4))
+            hud.willSubmit = true
+            hud.showFinishing("確定を待っています")
+            try? await Task.sleep(for: .seconds(4))
+            hud.hide()
+        }
     }
 
     func showSettings() {

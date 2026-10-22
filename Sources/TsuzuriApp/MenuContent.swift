@@ -2,17 +2,27 @@ import AppKit
 import SwiftUI
 import TsuzuriCore
 
-/// メニューバーのアイコン。録音中は赤い丸にする
+/// メニューバーのアイコン。録音中だけ赤くする(テーマに依らない)
 struct MenuBarIcon: View {
     let controller: DictationController
 
     var body: some View {
         switch controller.phase {
         case .idle: Image(systemName: controller.isReady ? "waveform" : "exclamationmark.triangle")
-        case .recording: Image(systemName: "record.circle.fill")
+        case .recording: Image(nsImage: Self.redRecordIcon)
         case .finishing: Image(systemName: "ellipsis.circle")
         }
     }
+
+    /// メニューバーのアイコンはふつう単色にされるので、色を付けた絵として渡す
+    static let redRecordIcon: NSImage = {
+        let configuration = NSImage.SymbolConfiguration(pointSize: 15, weight: .regular)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [.systemRed]))
+        let image = NSImage(systemSymbolName: "record.circle.fill", accessibilityDescription: "録音中")?
+            .withSymbolConfiguration(configuration) ?? NSImage()
+        image.isTemplate = false
+        return image
+    }()
 }
 
 struct MenuContent: View {
@@ -22,6 +32,7 @@ struct MenuContent: View {
         Text(controller.statusLine)
         Divider()
         Text(controller.engineLine)
+        Text(controller.store.sonioxCostLine)
         Toggle("Mac 内だけで認識する", isOn: Binding(
             get: { controller.store.localOnly },
             set: { controller.store.localOnly = $0 }

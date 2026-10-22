@@ -2,16 +2,18 @@ import CoreGraphics
 import Foundation
 import TsuzuriCore
 
-/// 右⌘とほかのキー、録音中の Esc を見る能動的な CGEventTap。
+/// 録音キー(右⌘・右⌥・fn)とほかのキー、録音中の Esc・Return を見る能動的な CGEventTap。
 /// 能動的なものはアクセシビリティの権限で動き、キーを相手のアプリに届けないこともできる(設計書「右⌘の操作と状態」)
 final class KeyMonitor {
     /// このアプリが送ったキー(⌘V)の印。自分の出来事として数えない
     static let syntheticMarker: Int64 = 0x5453_5A52
 
-    private static let rightCommandKeyCode: Int64 = 54
     private static let escapeKeyCode: Int64 = 53
+    /// Return と、テンキーの Enter
+    private static let returnKeyCodes: Set<Int64> = [36, 76]
     /// 修飾キーの keyCode と、押されているときに立つ機器ごとの印(IOKit の NX_DEVICE*KEYMASK)
     private static let modifierMasks: [Int64: UInt64] = [
+        54: 0x0000_0010, // 右⌘
         55: 0x0000_0008, // 左⌘
         56: 0x0000_0002, // 左 shift
         60: 0x0000_0004, // 右 shift
@@ -21,13 +23,26 @@ final class KeyMonitor {
         62: 0x0000_2000, // 右 control
         63: CGEventFlags.maskSecondaryFn.rawValue // fn
     ]
-    private static let rightCommandMask: UInt64 = 0x0000_0010
+    /// 録音キーの keyCode
+    static func keyCode(of key: HotkeySettings.Key) -> Int64 {
+        switch key {
+        case .rightCommand: 54
+        case .rightOption: 61
+        case .fn: 63
+        }
+    }
+
+    /// 録音キー。設定の窓で変えたら差し替える
+    var key: HotkeySettings.Key {
+        didSet { recordKeyDown = false }
+    }
 
     private let handler: (HotkeyStateMachine.Event) -> Bool
     private var tap: CFMachPort?
-    private var rightCommandDown = false
+    private var recordKeyDown = false
 
-    init(handler: @escaping (HotkeyStateMachine.Event) -> Bool) {
+    init(key: HotkeySettings.Key, handler: @escaping (HotkeyStateMachine.Event) -> Bool) {
+        self.key = key
         self.handler = handler
     }
 
@@ -61,10 +76,11 @@ final class KeyMonitor {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         switch type {
         case .flagsChanged:
-            if keyCode == Self.rightCommandKeyCode {
-                let down = event.flags.rawValue & Self.rightCommandMask != 0
-                guard down != rightCommandDown else { return false }
-                rightCommandDown = down
+            let recordKeyCode = Self.keyCode(of: key)
+            if keyCode == recordKeyCode, let mask = Self.modifierMasks[recordKeyCode] {
+                let down = event.flags.rawValue & mask != 0
+                guard down != recordKeyDown else { return false }
+                recordKeyDown = down
                 return handler(down ? .keyDown(at: now) : .keyUp(at: now))
             }
             // ほかの修飾キーは押したときだけ数える(⌘⇧4 などの同時押し)
@@ -73,7 +89,9 @@ final class KeyMonitor {
             }
             return false
         case .keyDown:
-            return handler(keyCode == Self.escapeKeyCode ? .escape : .otherKeyDown(at: now))
+            if keyCode == Self.escapeKeyCode { return handler(.escape) }
+            if Self.returnKeyCodes.contains(keyCode) { return handler(.returnKey(at: now)) }
+            return handler(.otherKeyDown(at: now))
         default:
             return false
         }
