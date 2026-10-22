@@ -39,6 +39,8 @@ final class DictationController {
     @ObservationIgnored private var runIsLocal = false
     /// 録音中に Return が押され、貼り付けたあとに Return を送るか(段階4)
     @ObservationIgnored private var submitAfterPaste = false
+    /// 止めたときにいちばん前にあったアプリ。貼る前に替わっていたら貼らない(端末などへの打ち込みを防ぐ)
+    @ObservationIgnored private var pasteTarget: pid_t?
     /// いまの録音で Soniox に渡したヒントの字数(費用の表示に使う)
     @ObservationIgnored private var runHintCharacters = 0
     /// Mac 内で認識するときの、話している途中の文字(Apple の認識で表示だけに使う)
@@ -266,6 +268,7 @@ final class DictationController {
         chordTimer?.cancel()
         guard let run else { return }
         phase = .finishing
+        pasteTarget = NSWorkspace.shared.frontmostApplication?.processIdentifier
         let isLocal = runIsLocal
         hud.showFinishing(isLocal ? "Mac 内で認識しています" : "確定を待っています")
         Task {
@@ -330,7 +333,9 @@ final class DictationController {
         dictionary.recordUsage(in: shaped)
         let submit = submitAfterPaste
         submitAfterPaste = false
-        switch await Paster.paste(shaped) {
+        let target = pasteTarget
+        pasteTarget = nil
+        switch await Paster.paste(shaped, target: target) {
         case .pasted:
             // 録音中に Return が押されていたら、貼り終えてから送る
             if submit { Paster.sendReturn() }
@@ -338,6 +343,8 @@ final class DictationController {
             if let notice { hud.notice(notice) } else { hud.complete() }
         case .clipboardOnly:
             hud.notice(submit ? "入力欄が無いので、送らずにクリップボードに残しました" : "入力欄が無いので、クリップボードに残しました")
+        case .appChanged:
+            hud.notice(submit ? "貼る前にアプリが替わったので、送らずにクリップボードに残しました" : "貼る前にアプリが替わったので、クリップボードに残しました")
         }
         candidates.scan(shaped, app: app)
     }
@@ -350,7 +357,7 @@ final class DictationController {
         Task {
             // メニューから選んだときは、メニューが閉じて元のアプリに戻るのを待つ
             try? await Task.sleep(for: .milliseconds(150))
-            if await Paster.paste(text) == .clipboardOnly {
+            if await Paster.paste(text) != .pasted {
                 hud.notice("入力欄が無いので、クリップボードに残しました")
             }
         }
@@ -368,8 +375,9 @@ final class DictationController {
         hud.showFinishing(locally ? "Mac 内で認識し直しています" : "Soniox で認識し直しています")
         Task {
             defer { phase = .idle }
-            // メニューが閉じて元のアプリに戻るのを待つ
+            // メニューが閉じて元のアプリに戻るのを待ち、そのアプリを貼る先として覚える
             try? await Task.sleep(for: .milliseconds(150))
+            pasteTarget = NSWorkspace.shared.frontmostApplication?.processIdentifier
             let samples: [Float]
             do {
                 samples = try AudioFile.readSamples(from: store.audioURL(name))

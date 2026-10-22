@@ -7,6 +7,8 @@ enum Paster {
     enum Outcome {
         case pasted
         case clipboardOnly
+        /// 止めたときと違うアプリが前に来ていたので、貼らずにクリップボードに残した
+        case appChanged
     }
 
     /// クリップボード履歴のアプリに残さないための印(nspasteboard.org)
@@ -18,13 +20,16 @@ enum Paster {
     ]
     static let restoreDelay = Duration.milliseconds(300)
 
-    static func paste(_ text: String) async -> Outcome {
+    /// - Parameter target: 止めたときにいちばん前にあったアプリ。違うアプリが前に来ていたら貼らない(nil なら確かめない)
+    static func paste(_ text: String, target: pid_t? = nil) async -> Outcome {
         let pasteboard = NSPasteboard.general
-        let app = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-        guard PasteDecision.decide(focus: focusedElement(), appBundleID: app) == .paste else {
+        let front = NSWorkspace.shared.frontmostApplication
+        let appChanged = target.map { $0 != front?.processIdentifier } ?? false
+        let decision = PasteDecision.decide(focus: appChanged ? nil : focusedElement(), appBundleID: front?.bundleIdentifier, appChanged: appChanged)
+        guard decision == .paste else {
             pasteboard.clearContents()
             pasteboard.setString(text, forType: .string)
-            return .clipboardOnly
+            return decision == .appChanged ? .appChanged : .clipboardOnly
         }
         let saved = snapshot(pasteboard)
         pasteboard.clearContents()

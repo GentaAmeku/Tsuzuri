@@ -5,11 +5,18 @@ on:
     branches: [main]
   pull_request:
 
+# リポジトリの中身を読むだけにする
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v5
+      # 使う Action はコミットの ID で固定する(タグを後から付け替えられても影響を受けない)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - run: swift --version
       - run: swift build
       - run: swift test

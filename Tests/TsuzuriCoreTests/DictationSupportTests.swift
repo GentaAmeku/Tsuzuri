@@ -42,6 +42,13 @@ struct PasteDecisionTests {
         #expect(PasteDecision.decide(focus: nil, appBundleID: "com.apple.finder") == .clipboardOnly)
     }
 
+    @Test("止めてから貼るまでにいちばん前のアプリが替わったら、入力欄があっても貼らずにクリップボードに残す")
+    func appChangedKeepsClipboard() {
+        let focus = PasteDecision.Focus(role: "AXTextArea", acceptsText: true)
+        #expect(PasteDecision.decide(focus: focus, appBundleID: "com.apple.Terminal", appChanged: true) == .appChanged)
+        #expect(PasteDecision.decide(focus: focus, appBundleID: "com.apple.Terminal", appChanged: false) == .paste)
+    }
+
     @Test("Electron 製のアプリで要素が読めないときは、判定できないので貼る")
     func unknownPastes() {
         #expect(PasteDecision.decide(focus: nil, appBundleID: "com.anthropic.claudefordesktop") == .paste)

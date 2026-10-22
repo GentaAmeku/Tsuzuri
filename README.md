@@ -72,10 +72,11 @@ Tsuzuri was designed and built in conversation with [Claude Code](https://www.an
 
 ## What it touches
 
-- **Permissions:** the microphone, and Accessibility to see the recording key (a `CGEventTap`), to catch Esc and Return while recording, and to paste with ⌘V. It does not record while a password field has secure input on.
-- **Network:** in Soniox mode, audio is streamed to Soniox while you record. In on-device mode nothing is sent. The Soniox API key is kept in the Keychain (service `Tsuzuri.Soniox`), never in a file.
-- **Clipboard:** borrowed to paste and restored 0.3 seconds later — unless you copied something else in the meantime, or the old contents were marked as concealed by a password manager.
-- **Files:** the dictionary, the candidates, the last 100 texts, monthly Soniox usage and (by default) the last 7 days of audio are in `~/Library/Application Support/Tsuzuri`. The on-device models are in `~/Library/Caches/Tsuzuri/models`. The app never downloads a model by itself.
+- **Permissions:** the microphone, and Accessibility to see the recording key (a `CGEventTap`), to catch Esc and Return while recording, and to paste with ⌘V. The key monitor looks only at key codes — it never reads or stores what you type — and it does not record while a password field has secure input on. The app is signed with the hardened runtime and asks for no entitlement other than audio input; it is not sandboxed, because pasting with synthetic key events and reading the focused field through Accessibility are not available to sandboxed apps.
+- **Network:** in Soniox mode, audio is streamed to Soniox over TLS while you record, together with the dictionary words chosen as hints — keep that in mind before adding names you would not send to a cloud service. In on-device mode nothing is sent. The Soniox API key is kept in the Keychain (service `Tsuzuri.Soniox`), never in a file or a log.
+- **Pasting:** the text goes to the app that was in front when you stopped. If another app has come to the front by the time the text is ready, Tsuzuri does not paste (or send Return) there; it leaves the text on the clipboard and tells you.
+- **Clipboard:** borrowed to paste and restored 0.3 seconds later, marked so clipboard-history apps skip it — unless you copied something else in the meantime, or the old contents were marked as concealed by a password manager.
+- **Files:** the dictionary, the candidates, the last 100 texts, monthly Soniox usage and (by default) the last 7 days of audio are in `~/Library/Application Support/Tsuzuri`. The on-device models are in `~/Library/Caches/Tsuzuri/models`. The app never downloads a model by itself; `fetch-model` downloads WhisperKit's model from Hugging Face over HTTPS. The app does not write what you said to the system log.
 
 ## Install
 
@@ -106,6 +107,10 @@ On first launch the Settings window opens; allow the microphone and Accessibilit
 - Soniox is a paid API (about $0.12 per hour of audio, plus text tokens for the hints). The menu shows an estimate for the month; check the exact amount on Soniox's dashboard.
 - On-device mode pastes about 2 seconds after you stop, and its live captions come from a different recognizer than the pasted text, so the two can differ.
 - It is a personal tool: the defaults, timings and starter dictionary are tuned for one person's work.
+
+## Security
+
+How to report a vulnerability, and what the app can reach: [SECURITY.md](SECURITY.md).
 
 ## Read more
 
