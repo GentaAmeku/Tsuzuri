@@ -20,6 +20,9 @@ struct Suggest: AsyncParsableCommand {
     @Flag(help: "文ごとの候補と判定を表示する")
     var verbose = false
 
+    @Flag(help: "評価用の辞書を本人の辞書とみなし、置き換えをかけてから、辞書の語に読みが近い語も挙げる(既定は空の辞書)")
+    var withDictionary = false
+
     func run() async throws {
         guard SuspectScanner.isAvailable else {
             throw ValidationError("Apple Foundation Models を使えません(Apple Intelligence が無効など)")
@@ -27,8 +30,9 @@ struct Suggest: AsyncParsableCommand {
         let paths = options.paths
         let sentences = Dictionary(uniqueKeysWithValues: try EvalStore.sentences(paths).map { ($0.id, $0) })
         let dictionary = try EvalStore.dictionary(paths)
-        // アプリと同じ入力にするため、空の辞書で整える段をかける(置き換えは起きない)
-        let shaper = TextShaper(dictionary: DictionaryFile(version: dictionary.version, entries: [], fillers: dictionary.fillers))
+        // アプリと同じ入力にするため、整える段をかける。既定は空の辞書(置き換えは起きない)
+        let known = withDictionary ? dictionary.entries : []
+        let shaper = TextShaper(dictionary: DictionaryFile(version: dictionary.version, entries: known, fillers: dictionary.fillers))
         let available = Dictionary(uniqueKeysWithValues: try EvalStore.runs(paths).map { ($0.name, $0) })
 
         var rows: [(name: String, tally: SuggestionTally, seconds: [Double], failures: Int)] = []
@@ -48,7 +52,7 @@ struct Suggest: AsyncParsableCommand {
                 let clock = ContinuousClock.now
                 let outcome: SuspectScanner.Outcome
                 do {
-                    outcome = try await SuspectScanner.candidates(for: shaped, dictionary: [])
+                    outcome = try await SuspectScanner.candidates(for: shaped, dictionary: known)
                 } catch {
                     failures += 1
                     details.append("- **\(item.id)** 洗い出しに失敗: \(error)\n")
@@ -71,7 +75,7 @@ struct Suggest: AsyncParsableCommand {
         let verdict = total.meetsTargets ? "目標に届いた" : "目標に届いていない"
         let report = "# 辞書の候補の洗い出し\n\n目標: ① 8割以上・③ 外れの異なる語が\(SuggestionTally.maximumFalsePositiveWords)語以下(160文で)。② は参考(\(verdict))\n\n\(table)\n\n" + details.joined(separator: "\n")
         try FileManager.default.createDirectory(at: paths.results, withIntermediateDirectories: true)
-        let url = paths.results.appending(path: "suggest.md")
+        let url = paths.results.appending(path: withDictionary ? "suggest-with-dictionary.md" : "suggest.md")
         try report.write(to: url, atomically: true, encoding: .utf8)
         print(table)
         print("\n\(verdict)。文ごとの候補: \(url.path)")

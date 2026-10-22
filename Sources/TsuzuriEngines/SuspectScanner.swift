@@ -56,14 +56,20 @@ public enum SuspectScanner {
         public let candidates: [SuggestionCandidate]
     }
 
-    /// 拾う → 挙げる → 除く を通して、辞書の候補を出す。アプリと測定(tsuzuri-eval suggest)で同じ流れを使う
-    public static func candidates(for text: String, dictionary surfaces: [String], settled: Set<DiscardedPair> = []) async throws -> Outcome {
+    /// 拾う → 挙げる → 除く を通して、辞書の候補を出す。アプリと測定(tsuzuri-eval suggest)で同じ流れを使う。
+    /// 辞書の語に読みが近い語(規則)を先に、Apple Foundation Models の答えをあとに並べ、同じ語は先のものを採る
+    public static func candidates(for text: String, dictionary entries: [DictionaryEntry], settled: Set<DiscardedPair> = []) async throws -> Outcome {
+        let surfaces = entries.map(\.surface)
         let marked = SuspectMarker.mark(text, dictionary: surfaces)
+        let near = NearDictionary.suspects(marked: marked, entries: entries)
         let suspects = try await scan(text, marked: marked)
-        return Outcome(
-            marked: marked,
-            candidates: CandidateFilter.candidates(from: suspects, in: text, dictionary: surfaces, marked: marked, discarded: settled)
-        )
+        let candidates = await MainActor.run {
+            CandidateFilter.candidates(
+                from: near + suspects, in: text, dictionary: surfaces, marked: marked, discarded: settled,
+                isEnglishWord: EnglishWords.isWord
+            )
+        }
+        return Outcome(marked: marked, candidates: candidates)
     }
 
     public static func scan(_ text: String, marked: [String]) async throws -> [Suspect] {

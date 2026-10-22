@@ -76,7 +76,8 @@ public enum CandidateFilter {
         in text: String,
         dictionary surfaces: [String],
         marked: [String] = [],
-        discarded: Set<DiscardedPair> = []
+        discarded: Set<DiscardedPair> = [],
+        isEnglishWord: (String) -> Bool = { _ in false }
     ) -> [SuggestionCandidate] {
         let known = Set(surfaces.map(compact))
         var seen: Set<String> = []
@@ -95,6 +96,7 @@ public enum CandidateFilter {
                     let key = compact(proposal)
                     return !key.isEmpty
                         && isPlausible(heard: heard, surface: proposal)
+                        && !translatesToPlainEnglish(heard: heard, surface: proposal, isEnglishWord: isEnglishWord)
                         && !discarded.contains(DiscardedPair(heard: heard, surface: proposal))
                         && keys.insert(key).inserted
                 }
@@ -125,6 +127,11 @@ public enum CandidateFilter {
         let japaneseOnly = { (text: String) in text.allSatisfy { $0.isHiragana || $0.isKanji } }
         if japaneseOnly(heard), japaneseOnly(surface), Reading.similarity(heard, surface) < minimumReadingSimilarity { return false }
         return true
+    }
+
+    /// 日本語の字の語を、ふつうの英単語だけでできた表記に直す案(フィードバック → feedback)。聞き違いではなく訳なので捨てる
+    static func translatesToPlainEnglish(heard: String, surface: String, isEnglishWord: (String) -> Bool) -> Bool {
+        heard.contains(where: \.isJapaneseLetter) && PlainEnglish.isPlain(surface, isEnglishWord: isEnglishWord)
     }
 
     /// 助詞まで含めて挙げた語(ストーリーブックのストーリー)を、中に入っている印の付いた語(長いもの)に切り詰める

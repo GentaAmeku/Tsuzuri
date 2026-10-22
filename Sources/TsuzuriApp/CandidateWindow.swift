@@ -22,9 +22,10 @@ final class CandidateWindowModel {
         self.store = store
     }
 
-    /// 窓で直していない候補は、1つ目の表記の案と入れ方の初期値で始める(初めは選んだ状態)
+    /// 窓で直していない候補は、1つ目の表記の案と入れ方の初期値で始める。
+    /// 初めは選んでいない状態にし、入れたいものだけを選ぶ(ふつうの語までまとめて入るのを防ぐため)
     func draft(for item: StoredCandidate) -> Draft {
-        drafts[item.id] ?? Draft(surface: item.surfaces[0], mode: InsertionMode.initial(heard: item.heard, surface: item.surfaces[0]), checked: true)
+        drafts[item.id] ?? Draft(surface: item.surfaces[0], mode: InsertionMode.initial(heard: item.heard, surface: item.surfaces[0]), checked: false)
     }
 
     func binding<Value>(_ item: StoredCandidate, _ keyPath: WritableKeyPath<Draft, Value>) -> Binding<Value> {
