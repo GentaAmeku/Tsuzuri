@@ -125,7 +125,8 @@ public final class AppleSpeechLive: @unchecked Sendable {
         guard let converter else { return nil }
         let capacity = AVAudioFrameCount(Double(source.frameLength) * format.sampleRate / source.format.sampleRate) + 64
         guard let output = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else { return nil }
-        var consumed = false
+        // 入力を渡す処理は convert の中で同期して呼ばれるので、この変数を別の糸と取り合うことはない
+        nonisolated(unsafe) var consumed = false
         var error: NSError?
         converter.convert(to: output, error: &error) { _, status in
             if consumed {
