@@ -95,6 +95,9 @@ if [[ "$INSTALL" == 1 ]]; then
   pkill -x "$PRODUCT" 2>/dev/null && sleep 1 || true
   rm -rf "$INSTALL_DIR/$DISPLAY_NAME.app"
   cp -R "$APP_DIR" "$INSTALL_DIR/"
+  # アイコンなどを macOS に読み直させる(置き換えても、Finder や設定の一覧が古い表示を覚えていることがある)
+  touch "$INSTALL_DIR/$DISPLAY_NAME.app"
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$INSTALL_DIR/$DISPLAY_NAME.app" || true
   open "$INSTALL_DIR/$DISPLAY_NAME.app"
   echo "$INSTALL_DIR/$DISPLAY_NAME.app"
 else
