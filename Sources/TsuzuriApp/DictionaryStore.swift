@@ -55,6 +55,11 @@ final class DictionaryStore {
         HintSelector.select(entries: dictionary.entries, usage: usage, now: now)
     }
 
+    /// 辞書に足した日時(足した順に並べるため)。最初の辞書の語には無い
+    func addedAt(_ surface: String) -> Date? {
+        usage[surface]?.addedAt
+    }
+
     func shaper(waObunSpacing: Bool) -> TextShaper {
         TextShaper(dictionary: dictionary, waObunSpacing: waObunSpacing)
     }

@@ -69,4 +69,34 @@ public enum DictionaryEditing {
         }
         return issues
     }
+
+    /// 1行の欄から語を足したときの結果
+    public enum QuickAddResult: Equatable, Sendable {
+        /// 新しい語として足した
+        case added
+        /// もうある語に、聞き違い・読みだけを足した
+        case extended
+        /// もうある語で、足すものが無かった
+        case unchanged
+        /// 語が空
+        case empty
+    }
+
+    /// 窓の上の1行の欄から語を足す(2026-10-22。打って Return で足す)。
+    /// もうある語なら、聞き違い・読みだけを重ならないように足す。新しい語は手で足した語として、ヒントにする
+    public static func quickAdd(surface: String, misheard: String, to entries: [DictionaryEntry]) -> (entries: [DictionaryEntry], result: QuickAddResult) {
+        let surface = surface.trimmingCharacters(in: .whitespaces)
+        guard !surface.isEmpty else { return (entries, .empty) }
+        let readings = parseList(misheard).filter { $0 != surface }
+        var entries = entries
+        if let index = entries.firstIndex(where: { $0.surface == surface }) {
+            let entry = entries[index]
+            let added = readings.filter { !entry.from.contains($0) }
+            guard !added.isEmpty else { return (entries, .unchanged) }
+            entries[index] = DictionaryEntry(surface: entry.surface, from: entry.from + added, hint: entry.hint, pinned: entry.pinned, source: entry.source)
+            return (entries, .extended)
+        }
+        entries.append(DictionaryEntry(surface: surface, from: readings, hint: true, pinned: false, source: .manual))
+        return (entries, .added)
+    }
 }

@@ -207,3 +207,28 @@ struct SuggestionScoreTests {
         #expect(!tally.meetsTargets)
     }
 }
+
+@Suite("1行の欄から語を足す")
+struct QuickAddTests {
+    let existing = [DictionaryEntry(surface: "Vitest", from: ["バイテスト"], hint: true, pinned: true, source: .manual)]
+
+    @Test("新しい語は、聞き違い・読みと一緒に手で足した語として足す")
+    func addsNewWord() {
+        let (entries, result) = DictionaryEditing.quickAdd(surface: " Soniox ", misheard: "ソニオックス、ソニックス", to: existing)
+        #expect(result == .added)
+        #expect(entries.last == DictionaryEntry(surface: "Soniox", from: ["ソニオックス", "ソニックス"], hint: true, pinned: false, source: .manual))
+    }
+
+    @Test("もうある語には、聞き違い・読みだけを重ならないように足す")
+    func extendsExisting() {
+        let (entries, result) = DictionaryEditing.quickAdd(surface: "Vitest", misheard: "バイテスト、B テスト", to: existing)
+        #expect(result == .extended)
+        #expect(entries == [DictionaryEntry(surface: "Vitest", from: ["バイテスト", "B テスト"], hint: true, pinned: true, source: .manual)])
+    }
+
+    @Test("足すものが無い・語が空のときは変えない")
+    func unchangedOrEmpty() {
+        #expect(DictionaryEditing.quickAdd(surface: "Vitest", misheard: "バイテスト", to: existing).result == .unchanged)
+        #expect(DictionaryEditing.quickAdd(surface: "  ", misheard: "ソニックス", to: existing).result == .empty)
+    }
+}
