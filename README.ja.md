@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/images/icon.png" width="128" alt="Tsuzuri のアイコン。綴じ糸が声の波形になっている和綴じの冊子"></p>
+<p align="center"><img src="docs/images/icon.png" width="128" alt="Tsuzuri のアイコン。青の地に白いマイクと、録音中を表す赤い丸"></p>
 
 # Tsuzuri
 

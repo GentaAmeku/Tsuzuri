@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/images/icon.png" width="128" alt="Tsuzuri app icon: a stitch-bound notebook whose binding thread turns into a voice waveform"></p>
+<p align="center"><img src="docs/images/icon.png" width="128" alt="Tsuzuri app icon: a white microphone on blue, with a red recording dot"></p>
 
 # Tsuzuri
 
