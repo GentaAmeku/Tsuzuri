@@ -68,6 +68,11 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
+# アプリのアイコン(scripts/make-app-icon.swift で作る)。あれば入れる
+if [[ -f "$ROOT_DIR/Resources/AppIcon.icns" ]]; then
+  cp "$ROOT_DIR/Resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
+  plutil -insert CFBundleIconFile -string AppIcon "$APP_DIR/Contents/Info.plist"
+fi
 plutil -lint "$APP_DIR/Contents/Info.plist" >/dev/null
 
 # hardened runtime を付け、ほかのプログラムがライブラリを差し込んで権限を使えないようにする。
