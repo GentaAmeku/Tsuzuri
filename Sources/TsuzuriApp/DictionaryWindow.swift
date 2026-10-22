@@ -52,9 +52,12 @@ final class DictionaryEditorModel {
     private(set) var suggestions: [Row.ID: [String]] = [:]
     private(set) var suggesting: Row.ID?
     private(set) var isDirty = false
+    /// いま足した・直した語の行。少しの間だけ色を付けて、どこに入ったか分かるようにする
+    private(set) var highlighted: Row.ID?
 
     @ObservationIgnored private let store: DictionaryStore
     @ObservationIgnored private var base: Date?
+    @ObservationIgnored private var highlightTask: Task<Void, Never>?
 
     init(store: DictionaryStore) {
         self.store = store
@@ -94,10 +97,17 @@ final class DictionaryEditorModel {
         case .added, .extended:
             break
         }
-        if let index = rows.firstIndex(where: { $0.surface == surface }), let entry = entries.first(where: { $0.surface == surface }) {
-            rows[index].fromText = DictionaryEditing.joinList(entry.from)
-        } else if let entry = entries.last {
-            rows.insert(Row(surface: entry.surface, fromText: DictionaryEditing.joinList(entry.from), hint: entry.hint, pinned: entry.pinned, source: entry.source), at: 0)
+        // 新しい行は表の頭へすべり込ませる
+        let changed: Row.ID? = withAnimation(.snappy(duration: 0.3)) {
+            if let index = rows.firstIndex(where: { $0.surface == surface }), let entry = entries.first(where: { $0.surface == surface }) {
+                rows[index].fromText = DictionaryEditing.joinList(entry.from)
+                return rows[index].id
+            } else if let entry = entries.last {
+                let row = Row(surface: entry.surface, fromText: DictionaryEditing.joinList(entry.from), hint: entry.hint, pinned: entry.pinned, source: entry.source)
+                rows.insert(row, at: 0)
+                return row.id
+            }
+            return nil
         }
         isDirty = true
         save()
@@ -105,8 +115,20 @@ final class DictionaryEditorModel {
         filter = ""
         quickSurface = ""
         quickMisheard = ""
-        quickSuggestions = []
+        withAnimation(.snappy(duration: 0.25)) { quickSuggestions = [] }
         message = "「\(surface)」を\(result == .added ? "足しました" : "直しました")。その語を含む文を話して、正しく出るか確かめてください。まだ誤るなら、出た字を聞き違い・読みに足してください"
+        highlight(changed)
+    }
+
+    /// 行に少しの間だけ色を付け、ゆっくり消す
+    private func highlight(_ id: Row.ID?) {
+        highlightTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) { highlighted = id }
+        highlightTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1.6))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.8)) { self?.highlighted = nil }
+        }
     }
 
     /// 1行の欄の語の読みを、Apple Foundation Models に出させる
@@ -118,7 +140,8 @@ final class DictionaryEditorModel {
         Task {
             defer { quickSuggesting = false }
             do {
-                quickSuggestions = try await ReadingSuggester.suggest(for: surface, excluding: existing)
+                let readings = try await ReadingSuggester.suggest(for: surface, excluding: existing)
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { quickSuggestions = readings }
                 if quickSuggestions.isEmpty { message = "「\(surface)」の読みの候補は出ませんでした" }
             } catch {
                 message = "読みを提案できませんでした(\(error.localizedDescription))"
@@ -129,7 +152,7 @@ final class DictionaryEditorModel {
     /// 読みの候補を押したら、聞き違い・読みの欄に足す
     func acceptQuick(_ reading: String) {
         quickMisheard = DictionaryEditing.joinList(DictionaryEditing.parseList(quickMisheard) + [reading])
-        quickSuggestions.removeAll { $0 == reading }
+        withAnimation(.snappy(duration: 0.25)) { quickSuggestions.removeAll { $0 == reading } }
     }
 
     var selectedRow: Row? {
@@ -199,7 +222,7 @@ final class DictionaryEditorModel {
             defer { suggesting = nil }
             do {
                 let readings = try await ReadingSuggester.suggest(for: surface, excluding: existing)
-                suggestions[row.id] = readings
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { suggestions[row.id] = readings }
                 if readings.isEmpty { message = "「\(surface)」の読みの候補は出ませんでした" }
             } catch {
                 message = "読みを提案できませんでした(\(error.localizedDescription))"
@@ -211,7 +234,7 @@ final class DictionaryEditorModel {
         guard let index = rows.firstIndex(where: { $0.id == id }) else { return }
         let list = DictionaryEditing.parseList(rows[index].fromText) + [reading]
         rows[index].fromText = DictionaryEditing.joinList(DictionaryEditing.parseList(DictionaryEditing.joinList(list)))
-        suggestions[id]?.removeAll { $0 == reading }
+        withAnimation(.snappy(duration: 0.25)) { suggestions[id]?.removeAll { $0 == reading } }
         isDirty = true
     }
 }
@@ -269,6 +292,11 @@ struct DictionaryEditorView: View {
                 TableColumn("語(正しい表記)") { row in
                     HStack(spacing: 6) {
                         TextField("語", text: model.binding(row.id, \.surface))
+                            .padding(.horizontal, 2)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.accentColor.opacity(model.highlighted == row.id ? 0.22 : 0))
+                            )
                         if row.source == .auto {
                             Text("候補から")
                                 .font(.caption2)
@@ -309,6 +337,8 @@ struct DictionaryEditorView: View {
             HStack {
                 if let message = model.message {
                     Text(message).font(.callout).foregroundStyle(.secondary)
+                        .id(message)
+                        .transition(.opacity.combined(with: .offset(y: 6)))
                 }
                 Spacer()
                 Button("読み直す") { model.reload() }
@@ -319,6 +349,7 @@ struct DictionaryEditorView: View {
         }
         .padding(16)
         .frame(minWidth: 720, minHeight: 480)
+        .animation(.easeOut(duration: 0.25), value: model.message)
     }
 
     /// 窓の上の1行の欄。語を打って Return で足し、その場で保存する。聞き違い・読みは任意
@@ -344,6 +375,7 @@ struct DictionaryEditorView: View {
                 ForEach(model.quickSuggestions, id: \.self) { reading in
                     Button("+ \(reading)") { model.acceptQuick(reading) }
                         .buttonStyle(.bordered)
+                        .transition(.scale(scale: 0.7).combined(with: .opacity))
                 }
                 if model.quickSuggestions.isEmpty {
                     Text("語だけで足せます。カタカナなどに化けて出る語は、聞き違い・読みも足すと、その字で出たときに直して貼ります。")
@@ -366,6 +398,7 @@ struct DictionaryEditorView: View {
                 ForEach(model.suggestions[row.id] ?? [], id: \.self) { reading in
                     Button("+ \(reading)") { model.accept(reading, for: row.id) }
                         .buttonStyle(.bordered)
+                        .transition(.scale(scale: 0.7).combined(with: .opacity))
                 }
                 if !ReadingSuggester.isAvailable {
                     Text("Apple Intelligence が無効なので、読みの提案は使えません").font(.caption).foregroundStyle(.secondary)

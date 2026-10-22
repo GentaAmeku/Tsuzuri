@@ -35,11 +35,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // アプリの中で、途中の文字の認識に録音を実際の速さで渡し、途中の文字を書き出して終わる(--simulate-live <録音の WAV>)
         if let index = CommandLine.arguments.firstIndex(of: "--simulate-live"), index + 1 < CommandLine.arguments.count {
             let url = URL(filePath: CommandLine.arguments[index + 1])
-            Task {
+            Task { [controller] in
                 do {
                     let samples = try AudioFile.readSamples(from: url)
                     print(await AppleSpeechLive.assetReport())
-                    let live = try await AppleSpeechLive.start(terms: [])
+                    // アプリの録音と同じく、辞書の語をヒントに渡す
+                    let terms = Array(controller.dictionary.hintTerms().prefix(WhisperKitEngine.hintLimit))
+                    print("語のヒント: \(terms.count)語")
+                    let live = try await AppleSpeechLive.start(terms: terms)
                     let started = Date()
                     live.onUpdate = { final, volatile in print(String(format: "%.1f秒: %@", Date().timeIntervalSince(started), final + volatile)) }
                     var fed = 0
@@ -52,6 +55,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     print("最後: " + (await live.finish()))
                 } catch {
                     print("失敗: \(error)")
+                }
+                exit(0)
+            }
+            return
+        }
+        // 試し: 途中の文字の認識を3回続けて始め、2回目の前に認識の常駐プロセスが終わっても使えるかを見る(--live-repeat <録音の WAV>)
+        if let index = CommandLine.arguments.firstIndex(of: "--live-repeat"), index + 1 < CommandLine.arguments.count {
+            let url = URL(filePath: CommandLine.arguments[index + 1])
+            Task {
+                let samples = (try? AudioFile.readSamples(from: url)) ?? []
+                for round in 1...3 {
+                    do {
+                        let live = try await AppleSpeechLive.start(terms: [])
+                        var fed = 0
+                        while fed < min(samples.count, 48_000) {
+                            let next = min(samples.count, fed + 1_600)
+                            live.feed(Array(samples[fed..<next]))
+                            fed = next
+                            try await Task.sleep(for: .milliseconds(100))
+                        }
+                        print("\(round)回目: " + (await live.finish()))
+                    } catch {
+                        print("\(round)回目: 失敗 \(error)")
+                    }
+                    try? await Task.sleep(for: .seconds(10))
                 }
                 exit(0)
             }
@@ -75,12 +103,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return
         }
-        // 本物の窓で、音量と文字を流しながら表示を写し取って終わる(--simulate-hud <フォルダ> [dark])
+        // 本物の窓で、音量と文字を流しながら表示を写し取って終わる(--simulate-hud <フォルダ> [dark] [frames])。
+        // frames を付けると、動きを確かめるために 1/30 秒ごとの絵も残す
         if let index = CommandLine.arguments.firstIndex(of: "--simulate-hud"), index + 1 < CommandLine.arguments.count {
             let directory = URL(filePath: CommandLine.arguments[index + 1], directoryHint: .isDirectory)
             let theme: HUDTheme = CommandLine.arguments.contains("dark") ? .dark : .blueWhite
             Task {
-                await RecordingHUD.simulate(to: directory, theme: theme)
+                await RecordingHUD.simulate(to: directory, theme: theme, frames: CommandLine.arguments.contains("frames"))
                 exit(0)
             }
             return

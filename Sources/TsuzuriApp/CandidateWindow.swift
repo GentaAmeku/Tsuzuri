@@ -58,7 +58,10 @@ final class CandidateWindowModel {
     func insert(_ item: StoredCandidate) -> Bool {
         let draft = draft(for: item)
         do {
-            try store.insert(item, surface: draft.surface, mode: draft.mode)
+            // 入れた候補の行は、縮みながら消える
+            try withAnimation(.snappy(duration: 0.3)) {
+                try store.insert(item, surface: draft.surface, mode: draft.mode)
+            }
             drafts[item.id] = nil
             message = "「\(draft.surface)」を辞書に入れました。次の音声入力から効きます"
             return true
@@ -69,7 +72,7 @@ final class CandidateWindowModel {
     }
 
     func discard(_ item: StoredCandidate) {
-        store.discard(item.id)
+        withAnimation(.snappy(duration: 0.3)) { store.discard(item.id) }
         drafts[item.id] = nil
     }
 
@@ -147,6 +150,8 @@ struct CandidateWindowView: View {
             HStack {
                 if let message = model.message ?? model.store.lastError {
                     Text(message).font(.caption).foregroundStyle(.secondary)
+                        .id(message)
+                        .transition(.opacity.combined(with: .offset(y: 6)))
                 } else {
                     Text("入れた語は「辞書を編集…」でいつでも直せます").font(.caption).foregroundStyle(.secondary)
                 }
@@ -162,6 +167,7 @@ struct CandidateWindowView: View {
         }
         .padding(16)
         .frame(minWidth: 760, minHeight: 360)
+        .animation(.easeOut(duration: 0.25), value: model.message)
     }
 
     @ViewBuilder private var candidateList: some View {
@@ -228,7 +234,7 @@ struct CandidateWindowView: View {
                 HStack {
                     Text("\(pair.heard) → \(pair.surface)")
                     Spacer()
-                    Button("戻す") { model.store.restore(pair) }
+                    Button("戻す") { withAnimation(.snappy(duration: 0.3)) { model.store.restore(pair) } }
                 }
             }
         }

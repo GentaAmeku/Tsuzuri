@@ -27,10 +27,21 @@ public final class AppleSpeechLive: @unchecked Sendable {
         converter = AVAudioConverter(from: AudioFile.processingFormat, to: format)
     }
 
+    /// 一度確かめた言語とモデルの状態。OS の認識の常駐プロセスは、しばらく使わないと終わる。終わったあとは、
+    /// このプロセスからのモデルの問い合わせが「入っていない」と答えるようになるが、認識そのものは動く。
+    /// そこで、確かめるのは最初の1回だけにする
+    private static let checked = CheckedLocale()
+
     /// 始める。日本語のモデルが入っていなければ失敗する(取得はしない)
     public static func start(terms: [String]) async throws -> AppleSpeechLive {
-        guard let locale = await DictationTranscriber.supportedLocale(equivalentTo: AppleSpeech.locale) else {
-            throw AppleSpeechError.localeUnsupported(AppleSpeech.locale.identifier)
+        let locale: Locale
+        if let known = checked.locale {
+            locale = known
+        } else {
+            guard let supported = await DictationTranscriber.supportedLocale(equivalentTo: AppleSpeech.locale) else {
+                throw AppleSpeechError.localeUnsupported(AppleSpeech.locale.identifier)
+            }
+            locale = supported
         }
         let transcriber = DictationTranscriber(
             locale: locale,
@@ -39,11 +50,14 @@ public final class AppleSpeechLive: @unchecked Sendable {
             reportingOptions: [.volatileResults],
             attributeOptions: []
         )
-        // モデルはシステムに入っていても、このアプリへの言語の割り当てが無いと使えない。割り当てだけ行い、取得はしない
-        if await AssetInventory.status(forModules: [transcriber]) != .installed {
-            _ = try? await AssetInventory.reserve(locale: locale)
+        if checked.locale == nil {
+            // モデルはシステムに入っていても、このアプリへの言語の割り当てが無いと使えない。割り当てだけ行い、取得はしない
+            if await AssetInventory.status(forModules: [transcriber]) != .installed {
+                _ = try? await AssetInventory.reserve(locale: locale)
+            }
+            try await AppleSpeech.ensureAssets(for: [transcriber], allowDownload: false)
+            checked.locale = locale
         }
-        try await AppleSpeech.ensureAssets(for: [transcriber], allowDownload: false)
         let analyzer = SpeechAnalyzer(modules: [transcriber])
         if !terms.isEmpty {
             let context = AnalysisContext()
@@ -123,6 +137,17 @@ public final class AppleSpeechLive: @unchecked Sendable {
             return source
         }
         return error == nil ? output : nil
+    }
+}
+
+/// 確かめ済みの言語(別の糸から読み書きする)
+private final class CheckedLocale: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: Locale?
+
+    var locale: Locale? {
+        get { lock.withLock { value } }
+        set { lock.withLock { value = newValue } }
     }
 }
 

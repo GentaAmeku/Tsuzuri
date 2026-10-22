@@ -1,6 +1,7 @@
 import AppKit
 import Carbon
 import Observation
+import os
 import TsuzuriCore
 import TsuzuriEngines
 
@@ -42,6 +43,7 @@ final class DictationController {
     @ObservationIgnored private var runHintCharacters = 0
     /// Mac 内で認識するときの、話している途中の文字(Apple の認識で表示だけに使う)
     @ObservationIgnored private var livePreview: Task<AppleSpeechLive?, Never>?
+    @ObservationIgnored private static let liveLogger = Logger(subsystem: "work.ameku.Tsuzuri", category: "live")
     @ObservationIgnored private var chordTimer: Task<Void, Never>?
     @ObservationIgnored private var apiKey: String?
     @ObservationIgnored private lazy var settingsWindow = SettingsWindow(controller: self)
@@ -227,7 +229,8 @@ final class DictationController {
                 run.tap.attach { samples in live.feed(samples) }
                 return live
             } catch {
-                NSLog("Tsuzuri: 話している途中の文字を出せません: \(error)")
+                // 理由を後から読めるよう、伏せずに残す(録音の中身は入らない)
+                Self.liveLogger.error("話している途中の文字を出せません: \(String(describing: error), privacy: .public)")
                 return nil
             }
         }
@@ -323,7 +326,8 @@ final class DictationController {
         case .pasted:
             // 録音中に Return が押されていたら、貼り終えてから送る
             if submit { Paster.sendReturn() }
-            if let notice { hud.notice(notice) } else { hud.hide() }
+            // 貼り終えたら、停止ボタンの場所にチェックを描いてから消す
+            if let notice { hud.notice(notice) } else { hud.complete() }
         case .clipboardOnly:
             hud.notice(submit ? "入力欄が無いので、送らずにクリップボードに残しました" : "入力欄が無いので、クリップボードに残しました")
         }
@@ -408,7 +412,7 @@ final class DictationController {
             hud.willSubmit = true
             hud.showFinishing("確定を待っています")
             try? await Task.sleep(for: .seconds(4))
-            hud.hide()
+            hud.complete()
         }
     }
 
