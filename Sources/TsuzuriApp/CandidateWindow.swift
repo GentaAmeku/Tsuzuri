@@ -246,3 +246,19 @@ struct CandidateWindowView: View {
         return FileManager.default.displayName(atPath: url.path).replacingOccurrences(of: ".app", with: "")
     }
 }
+
+extension CandidateWindow {
+    /// 動作の確かめ用。候補の窓を本物の窓に出し、中身を PNG に写し取る
+    static func render(store: CandidateStore, to directory: URL) async {
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let model = CandidateWindowModel(store: store)
+        let window = NSWindow(contentViewController: NSHostingController(rootView: CandidateWindowView(model: model)))
+        window.styleMask = [.titled, .closable, .resizable]
+        window.setContentSize(NSSize(width: 900, height: 420))
+        window.center()
+        window.orderFront(nil)
+        try? await Task.sleep(for: .milliseconds(900))
+        try? window.contentView?.pngSnapshot()?.write(to: directory.appending(path: "candidates.png"))
+        window.close()
+    }
+}

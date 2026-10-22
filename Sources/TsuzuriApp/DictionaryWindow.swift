@@ -437,10 +437,7 @@ extension DictionaryWindow {
             window.center()
             window.orderFront(nil)
             try? await Task.sleep(for: .milliseconds(900))
-            if let view = window.contentView, let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
-                view.cacheDisplay(in: view.bounds, to: rep)
-                try? rep.representation(using: .png, properties: [:])?.write(to: directory.appending(path: "dictionary-\(details ? "details" : "simple").png"))
-            }
+            try? window.contentView?.pngSnapshot()?.write(to: directory.appending(path: "dictionary-\(details ? "details" : "simple").png"))
             window.close()
         }
     }

@@ -161,3 +161,14 @@ extension AppleSpeechLive {
         return "モデルの状態: \(status) / 割り当て済みの言語: \(reserved)"
     }
 }
+
+extension AppleSpeechLive {
+    /// 日本語の認識モデルを、システムに取得させる(入っていれば何もしない)。`tsuzuri-eval fetch-model` から使う
+    public static func installJapaneseModel() async throws {
+        guard let locale = await DictationTranscriber.supportedLocale(equivalentTo: AppleSpeech.locale) else {
+            throw AppleSpeechError.localeUnsupported(AppleSpeech.locale.identifier)
+        }
+        let transcriber = DictationTranscriber(locale: locale, contentHints: [], transcriptionOptions: [], reportingOptions: [.volatileResults], attributeOptions: [])
+        try await AppleSpeech.ensureAssets(for: [transcriber], allowDownload: true)
+    }
+}

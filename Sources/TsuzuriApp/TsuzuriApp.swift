@@ -100,6 +100,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return
         }
+        // 候補の窓を写し取って終わる(--render-candidates <フォルダ>)
+        if let index = CommandLine.arguments.firstIndex(of: "--render-candidates"), index + 1 < CommandLine.arguments.count {
+            let directory = URL(filePath: CommandLine.arguments[index + 1], directoryHint: .isDirectory)
+            Task {
+                await CandidateWindow.render(store: controller.candidates, to: directory)
+                exit(0)
+            }
+            return
+        }
         // 設定の窓をタブごとに写し取って終わる(--render-settings <フォルダ>)
         if let index = CommandLine.arguments.firstIndex(of: "--render-settings"), index + 1 < CommandLine.arguments.count {
             let directory = URL(filePath: CommandLine.arguments[index + 1], directoryHint: .isDirectory)

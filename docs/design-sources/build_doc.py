@@ -1035,7 +1035,7 @@ section(
                 ["`TsuzuriCore`", "`HotkeyStateMachine`(右⌘の状態)・`TranscriptAssembler`(途中の文字)・`TextShaper` と `Normalizer`・`FillerRemover`・`TermReplacer`・`WaObunSpacing`(整える)・`HintSelector`(ヒントの選び方)・`PasteDecision`(貼るか)・`DictationHistory`(履歴)・`SpeechPresence`(無音の判定)・`DictionaryEditing`(編集の点検)・`SuspectMarker`(拾う)・`CandidateFilter`(除く)・`CandidateBook`(候補を貯める)・`DictionaryInsertion`(辞書に入れる)・`Reading`(読みの近さ)・`SuggestionScore`(洗い出しの数え方)・評価の集計"],
                 ["`TsuzuriEngines`", "`SonioxLiveSession`(話しながら送る接続)・`WhisperKitEngine`・`AppleSpeech`・`ReadingSuggester`(読みの提案)・`SuspectScanner`(候補の洗い出し)・`MicrophoneRecorder`・`SonioxKeychain`"],
                 ["`TsuzuriApp`", "`DictationController`(全体のまとめ役)・`DictationRun`(1回の録音と送信)・`KeyMonitor`(キーの検知)・`Paster`(貼り付け)・`RecordingHUD`(録音中の表示)・`LocalRecognizer`(Mac 内の認識)・`DictionaryStore` と `DictionaryWindow`(辞書)・`CandidateStore` と `CandidateWindow`(辞書の候補)・`SettingsWindow`・`MenuContent`"],
-                ["`tsuzuri-eval`", "`set-key`・`record`・`run`・`report`(`--shape` で整えた行も)・`readings`(読みの提案)・`shape`(整える段ごとの文字)・`suggest`(段階0の結果で洗い出しを測る)"],
+                ["`tsuzuri-eval`", "`set-key`・`fetch-model`(アプリで使う Mac 内のモデルを取得する。`--apple` で Apple の日本語のモデルも)・`record`・`run`・`report`(`--shape` で整えた行も)・`readings`(読みの提案)・`shape`(整える段ごとの文字)・`suggest`(段階0の結果で洗い出しを測る)"],
             ],
             row_label=True,
         ),

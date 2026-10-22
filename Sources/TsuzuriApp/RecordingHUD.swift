@@ -647,13 +647,13 @@ extension RecordingHUD {
                 hud.mode = sample.mode
                 hud.presented = true
                 if sample.text {
-                    hud.finalText = "1回実演で見せます。仕事のメモっぽい文を読み上げるので、"
-                    hud.tentativeText = "どう変換されるか"
+                    hud.finalText = "Claude Code で TanStack Query のキャッシュを無効にする処理を足して、"
+                    hud.tentativeText = "Vitest のテストも書いて"
                     hud.arriving.update(to: hud.finalText + hud.tentativeText, at: 0, settleAfter: 0)
                 }
                 hud.levels = (0..<levelCount).map { Float(abs(sin(Double($0) * 1.7))) * 0.8 }
                 hud.willSubmit = sample.submit
-                let view = HUDView(hud: hud).background(Color(white: 0.75))
+                let view = HUDView(hud: hud)
                 let renderer = ImageRenderer(content: view)
                 renderer.scale = 2
                 guard let image = renderer.nsImage, let tiff = image.tiffRepresentation,
@@ -673,10 +673,7 @@ extension RecordingHUD {
         hud.theme = theme
         var frameIndex = 0
         func capture(_ name: String) {
-            guard let panel = hud.panel, let view = panel.contentView,
-                  let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
-            view.cacheDisplay(in: view.bounds, to: rep)
-            try? rep.representation(using: .png, properties: [:])?.write(to: directory.appending(path: "\(name).png"))
+            try? hud.panel?.contentView?.pngSnapshot()?.write(to: directory.appending(path: "\(name).png"))
         }
         func snap(_ name: String) {
             capture(name)
@@ -709,13 +706,13 @@ extension RecordingHUD {
         await film(0.3)
         snap("2-start-b")
         var assembler = TranscriptAssembler()
-        assembler.apply([.init(text: "1回実演で見せます。", isFinal: true), .init(text: "仕事のメモ", isFinal: false)])
+        assembler.apply([.init(text: "Claude Code で ", isFinal: true), .init(text: "TanStack Query の", isFinal: false)])
         hud.update(assembler)
         await film(0.12)
         snap("3a-text-arriving")
         await film(0.4)
         snap("3-text-short")
-        assembler.apply([.init(text: "仕事のメモっぽい文を読み上げるので、", isFinal: true), .init(text: "どう変換されるかを見てください。長い文になったときの見え方も", isFinal: false)])
+        assembler.apply([.init(text: "TanStack Query のキャッシュを無効にする処理を足して、", isFinal: true), .init(text: "Vitest のテストも書いてください。", isFinal: false)])
         hud.update(assembler)
         await film(0.8)
         snap("4-text-long")

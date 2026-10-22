@@ -9,3 +9,5 @@
 - 録音(`eval/recordings/`)は本人の声なので git に入れない。評価の文に取引先の名前を入れない
 - モデルの取得(WhisperKit・Qwen3-ASR・Apple の認識)は数百MB〜数GB になる。ディスクの空きが少ないので、本人に確認してから行う。置き場所は `~/Library/Caches/Tsuzuri/models`
 - コミットメッセージは日本語で書く
+- README は英語(`README.md`)と日本語(`README.ja.md`)の2つで、中身をそろえる(書き方は AI Handout Studio の README に合わせる)。画像は `docs/images/`。開発の手順と評価の CLI の使い方は `docs/development.ja.md`
+- GitHub(`GentaAmeku/Tsuzuri`、公開)に置いている。README の画像は、本人の辞書・候補・履歴を写さないよう、見本の辞書と候補だけを置いた場所(`CFFIXED_USER_HOME`)でアプリを動かして写す
