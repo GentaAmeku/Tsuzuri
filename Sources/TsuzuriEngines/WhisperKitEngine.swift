@@ -74,9 +74,18 @@ public struct WhisperKitEngine: @unchecked Sendable {
             promptTokens: promptTokens(for: terms)
         )
         let startedAt = ContinuousClock.now
-        let results = try await pipe.transcribe(audioArray: samples, decodeOptions: options)
+        // 長い録音は静かな所で15秒以下に区切り、順に文字にしてつなぐ(設計書「Mac 内の長い録音は、15秒以下に区切って認識する」)
+        let ranges = AudioChunks.ranges(in: samples, sampleRate: AudioFile.sampleRate)
+        var text = ""
+        for range in ranges {
+            let chunk = Array(samples[range])
+            // 区切ったあとの無音だけの切れ端は渡さない(Whisper が文を作ってしまう)
+            if ranges.count > 1, !SpeechPresence.hasSpeech(chunk) { continue }
+            let results = try await pipe.transcribe(audioArray: chunk, decodeOptions: options)
+            text += results.map(\.text).joined()
+        }
         return Transcription(
-            text: results.map(\.text).joined(),
+            text: text,
             latencySeconds: (ContinuousClock.now - startedAt).seconds
         )
     }

@@ -102,7 +102,7 @@ swift build && .build/debug/TsuzuriApp --render-hud /tmp/tsuzuri-hud
 
 | 場所 | 中身 |
 | --- | --- |
-| `Sources/TsuzuriCore` | 副作用の無い処理(文字誤り率・用語正答率・集計・右⌘の状態・履歴・整える規則・置き換え・ヒントの選び方・候補の拾い方と除き方・候補の貯め方)。テストの中心 |
+| `Sources/TsuzuriCore` | 副作用の無い処理(文字誤り率・用語正答率・集計・右⌘の状態・履歴・整える規則・置き換え・ヒントの選び方・候補の拾い方と除き方・候補の貯め方・Mac 内に渡す長い録音の区切り方)。テストの中心 |
 | `Sources/TsuzuriEngines` | Soniox(話しながら送る接続)・WhisperKit・Apple の認識・Apple Foundation Models(読みの提案・候補の洗い出し)・マイク・キーチェーン・音声ファイル |
 | `Sources/TsuzuriApp` | メニューバーのアプリ(右⌘の検知・録音中の表示・貼り付け・設定・履歴・辞書の窓・候補の窓) |
 | `Sources/TsuzuriEvalKit` | 評価セットと結果の読み書き |

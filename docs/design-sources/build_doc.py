@@ -413,6 +413,38 @@ section(
 )
 
 section(
+    "Mac 内の長い録音は、15秒以下に区切って認識する",
+    [
+        text(
+            "WhisperKit は録音を30秒ずつの窓に分けて文字にする。1つの窓で書き出せるのは、文脈の224トークンから前置きの文(語のヒント。残るのは111トークンまで)を引いた残りで、いまのヒントでは107トークン(日本語で約130字、話して25〜30秒ほど)まで。上限に当たると、その窓の残りは捨てられる。30秒を超える録音では、30秒の切れ目の前後で語が落ち、残りの短い窓が空で返ることもある(34秒の録音で10回中5回)。本人の「長く録音すると最後の文字が切れる」という報告で分かった(2026-10-26)。"
+        ),
+        text(
+            "そこで、15秒を超える録音は、15秒の手前3秒のうち最も静かな0.1秒の真ん中で区切り、残りも同じように区切ってから、順に WhisperKit で文字にしてつなぐ。どの区切りにも同じ語のヒントを渡す。区切ったあとの無音だけの切れ端は渡さない(Whisper が文を作ってしまうため)。15秒以下の録音は区切らず、今までと同じ。区切り方は `TsuzuriCore` の `AudioChunks` に置き、Mac 内で貼る文字・直前の録音の認識し直し・評価の CLI のどれにも効く。"
+        ),
+        table(
+            ["録音", "今(区切らない)", "20秒で区切る", "15秒で区切る"],
+            [
+                ["評価の40文(4〜9秒)", "4.5%・82.3%", "同じ", "同じ"],
+                ["5文ずつつないだもの(20〜30秒・8件)", "23.3%・74.2%・8窓・2.8秒", "6.1%・79.0〜80.6%・2窓・5.1秒", "6.2%・83.9%・0窓・5.4秒"],
+                ["8文ずつつないだもの(32〜45秒・5件)", "34.3〜40.1%・50.0〜56.5%・5窓・9.1秒", "5.4%・77.4%・1窓・6.5秒", "6.6〜7.0%・77.4〜79.0%・0窓・9.1秒"],
+            ],
+            row_label=True,
+        ),
+        note(
+            "表の値は、整えたあとの文字誤り率・用語正答率・上限で打ち切られた窓の数・1件を文字にする時間(2026-10-26。本人の辞書と、語のヒントは今のまま。2回流して幅のあるものは幅で書いた)。つないだ録音は、評価の文の前後の無音を0.15秒まで削ってからつないだ。"
+        ),
+        text(
+            "誤りの率は20秒で区切ってもほぼ同じだが、早口の区切りが上限に当たって切れた。15秒では一度も当たらなかったので、15秒にした(2026-10-26 に本人が決定)。長い録音は最後まで文字にするので、待ちは伸びる(25秒ほどで約2.8秒 → 約5.4秒。今が速いのは途中で打ち切っているため)。"
+        ),
+        notice(
+            "info",
+            "つないだ評価の文には文と文の間に短い無音があり、区切りやすい。切れ目の少ない話し方で語の途中で切れないかは、ふだん使いで確かめる。",
+        ),
+    ],
+    level=3,
+)
+
+section(
     "費用の表示は段階4で足す",
     [
         text(
@@ -474,7 +506,7 @@ section(
             "費用の目安(推定): 1文字あたりのトークン数は、資料によって0.3〜0.8と幅がある(料金ページの目安と、context の上限の書き方)。100語(約600字)なら約180〜480トークンで、1回あたり約0.0007〜0.0019ドル。15秒の発話の音声と文字の代金(約0.0005ドル)の1.4〜4倍になる。1日100回使っても月に約2〜6ドルで小さいが、毎回の費用の大半はヒントになる。"
         ),
         text(
-            "Whisper のプロンプト(認識の前に渡せる前置きの文)は約220トークンまで。Whisper は数え方が別で、英字の語なら1語2〜4トークンほどなので、上位40語にする(初期値)。"
+            "Whisper のプロンプト(認識の前に渡せる前置きの文)には、上位40語を約200トークンまで並べる(初期値)。Whisper は数え方が別で、英字の語なら1語2〜4トークンほどになる。ただし WhisperKit の文脈は、前置きの文と書き出す文字を合わせて224トークンで、前置きの文は末尾の111トークンだけが残り、それより長い分は頭から削られる。いまの辞書では40語で約150トークンなので、頭の10語ほど(上位の語)が削られている。111トークン以内にして上位の語を残す形も試したが、評価の40文で整えたあとの文字誤り率が4.5% → 5.6%、用語正答率が82.3% → 77.4% と悪くなったので、今のままにする(2026-10-26 に本人が決定)。前置きの文が書き出せる量を減らす分は、録音を区切って補う(「Mac 内の長い録音は、15秒以下に区切って認識する」)。"
         ),
         notice("info", "ヒントが1回ごとに課金されるかは、Soniox の使用量の画面で実測して確かめる。語の数もそこで決める(未決)。"),
     ],
@@ -1023,7 +1055,7 @@ section(
         table(
             ["ターゲット", "持つもの"],
             [
-                ["`TsuzuriCore`", "整える規則・置き換え・候補の拾い方と除き方・入れ方の決め方・文字誤り率・用語正答率(副作用なし。テストの中心)"],
+                ["`TsuzuriCore`", "整える規則・置き換え・候補の拾い方と除き方・入れ方の決め方・長い録音の区切り方・文字誤り率・用語正答率(副作用なし。テストの中心)"],
                 ["`TsuzuriEngines`", "Soniox の接続、Mac 内の認識(WhisperKit)、Apple の認識、キーチェーン、Apple Foundation Models の呼び出し(読みの提案・候補の洗い出し)"],
                 ["`TsuzuriEvalKit`", "評価セットと結果の読み書き"],
                 ["`TsuzuriApp`", "メニューバー・録音・右⌘の検知・貼り付け・洗い出しの呼び出し・候補の窓などの画面(段階1から)"],
@@ -1036,7 +1068,7 @@ section(
         table(
             ["ターゲット", "ファイルと役割"],
             [
-                ["`TsuzuriCore`", "`HotkeyStateMachine`(右⌘の状態)・`TranscriptAssembler`(途中の文字)・`TextShaper` と `Normalizer`・`FillerRemover`・`TermReplacer`・`WaObunSpacing`(整える)・`HintSelector`(ヒントの選び方)・`PasteDecision`(貼るか)・`DictationHistory`(履歴)・`SpeechPresence`(無音の判定)・`DictionaryEditing`(編集の点検)・`SuspectMarker`(拾う)・`CandidateFilter`(除く)・`CandidateBook`(候補を貯める)・`DictionaryInsertion`(辞書に入れる)・`Reading`(読みの近さ)・`SuggestionScore`(洗い出しの数え方)・評価の集計"],
+                ["`TsuzuriCore`", "`HotkeyStateMachine`(右⌘の状態)・`TranscriptAssembler`(途中の文字)・`TextShaper` と `Normalizer`・`FillerRemover`・`TermReplacer`・`WaObunSpacing`(整える)・`HintSelector`(ヒントの選び方)・`PasteDecision`(貼るか)・`DictationHistory`(履歴)・`SpeechPresence`(無音の判定)・`AudioChunks`(Mac 内に渡す長い録音の区切り方)・`DictionaryEditing`(編集の点検)・`SuspectMarker`(拾う)・`CandidateFilter`(除く)・`CandidateBook`(候補を貯める)・`DictionaryInsertion`(辞書に入れる)・`Reading`(読みの近さ)・`SuggestionScore`(洗い出しの数え方)・評価の集計"],
                 ["`TsuzuriEngines`", "`SonioxLiveSession`(話しながら送る接続)・`WhisperKitEngine`・`AppleSpeech`・`ReadingSuggester`(読みの提案)・`SuspectScanner`(候補の洗い出し)・`MicrophoneRecorder`・`SonioxKeychain`"],
                 ["`TsuzuriApp`", "`DictationController`(全体のまとめ役)・`DictationRun`(1回の録音と送信)・`KeyMonitor`(キーの検知)・`Paster`(貼り付け)・`RecordingHUD`(録音中の表示)・`LocalRecognizer`(Mac 内の認識)・`DictionaryStore` と `DictionaryWindow`(辞書)・`CandidateStore` と `CandidateWindow`(辞書の候補)・`SettingsWindow`・`MenuContent`"],
                 ["`tsuzuri-eval`", "`set-key`・`fetch-model`(アプリで使う Mac 内のモデルを取得する。`--apple` で Apple の日本語のモデルも)・`record`・`run`・`report`(`--shape` で整えた行も)・`readings`(読みの提案)・`shape`(整える段ごとの文字)・`suggest`(段階0の結果で洗い出しを測る)"],
